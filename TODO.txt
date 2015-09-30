@@ -1,0 +1,7 @@
+execute_command (command_t c, int time_travel) - execute-command.c  PART C
+
+read_command_stream (command_stream_t s) - read-command.c PART A 
+
+
+make_command_stream (int (*get_next_byte) (void *),void *get_next_byte_argument) read-command.c PART A 
+-Probably a constructor 
