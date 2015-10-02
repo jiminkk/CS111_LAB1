@@ -3,9 +3,6 @@
 //Since we need the structs a
 
 
-typedef struct linked_list linked_list;
-typedef struct stack stack;
-typedef struct node node;
 
 
 enum command_type
@@ -42,17 +39,4 @@ struct command
     struct command *subshell_command;
   } u;
 };
-
-struct node {
-	command_t val;
-	node* next;
-};
-
-struct stack{
-	node* top;
-	int num_cmds;
-};
-
-struct linked_list{
-	node* head;
-};
+//struct and node defintions moved to read-command.c
