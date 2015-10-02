@@ -31,6 +31,23 @@ enum token_trait
 };
 
 typedef struct token token_t;
+typedef struct linked_list * linked_list_t;
+typedef struct stack * stack_t;
+typedef struct node * node_t;
+
+struct node {
+	command_t val;
+	node* next;
+};
+
+struct stack{
+	node* top;
+	int num_cmds;
+};
+
+struct linked_list{
+	node* head;
+};
 
 //This is specifically made for a linked list of tokens 
 struct token
@@ -107,6 +124,12 @@ command_t peek(void *p)
  bool higherPrecedence(void * p, command_t * current)
 {
 	//TO DO IMPLEMENT THIS LATER TO CORRECTLY DETERMINE PRECEDENCE
+}
+
+bool isEmpty(void *p)
+{
+	stack * item = (stack*) p;
+	return item->num_cmds==0;
 }
 
 bool isValidWord(char c)
@@ -447,7 +470,7 @@ command_stream_t splitTrees(char * input)
 }
 
 //Organizes it into proper command_trees
-command make_command(token_t * head)
+command_t make_command(token_t * head)
 {
 	stack * operands = checked_malloc(sizeof(stack_t));
 	stack * ops = checked_malloc(sizeof(stack_t));
@@ -469,6 +492,7 @@ command make_command(token_t * head)
 			case SUBSHELL:
 				//Make another tree with the subshell command by calling on make_command...
 				curr_cmd->u.subshell_command = make_command(make_linked_tokens(curr_cmd->value, strlen(*curr_cmd->value))->head);
+				
 				//Add this operand to the operand stack
 				push(operands, curr_cmd);
 				break;
@@ -479,7 +503,19 @@ command make_command(token_t * head)
 					push(ops, curr_cmd);
 				else
 				{
-					
+					if(higherPrecedence(ops, curr_cmd))
+					{
+						push(ops, curr_cmd);
+						break;
+					}
+					else 
+					{
+						while (peek(ops)-> && !higherPrecedence(ops, curr_cmd))
+						{
+							
+						}
+						
+					}
 				}
 				push(ops, curr_cmd);
 				break;
