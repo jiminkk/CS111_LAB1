@@ -23,7 +23,7 @@ enum token_trait
   AND,
   OR,
   SUBSHELL,
-  SIMPLE_COMMAND,
+  HEAD,
   PIPELINE,
   LEFT,
   RIGHT,
@@ -33,20 +33,29 @@ enum token_trait
 typedef struct token token_t;
 typedef struct linked_list * linked_list_t;
 typedef struct stack * stack_t;
+typedef struct stack stack;
+typedef struct node node;
 typedef struct node * node_t;
 
 struct node {
 	command_t val;
-	node* next;
+	node_t next;
 };
 
 struct stack{
-	node* top;
+	node_t top;
 	int num_cmds;
 };
 
+void* make_stack(){
+	stack_t tmp = checked_malloc(sizeof(stack));
+	tmp->top = NULL;
+	tmp->num_cmds = 0;
+	return tmp;
+}
+
 struct linked_list{
-	node* head;
+	node_t head;
 };
 
 //This is specifically made for a linked list of tokens 
@@ -54,15 +63,15 @@ struct token
 {
   char *value;
   enum token_trait trait;
-  *token next;
+  token_t* next;
 };
 
 token_t * make_token(enum token_trait type, char *value)
 { 
-  token * product = checked_malloc(sizeof(token));
+  token_t * product = checked_malloc(sizeof(token_t));
   product->trait = type;
-  product->value = *value;
-  product->next = NULL:
+  product->value = value;
+  product->next = NULL;
   return product;
 }
 //This struct will hold tokens that will all be used to parse one command tree through 
@@ -74,13 +83,20 @@ struct linked_tokens
   linked_tokens_t* next;
 };
 
+//Constructor
+linked_tokens_t* makeLinkedTokens(){
+	linked_tokens_t* temp = (linked_tokens_t*)checked_malloc(sizeof(linked_tokens_t));
+	temp->head = NULL;
+	temp->next = NULL;
+	return temp;
+}
 
 //Constructor should be made to create linked_tokens 
 //Destructor as well
 // 
 struct commeand_stream{
   //A collection of all the command objects 
-  linked_list* commands; //to be implemented later
+  //linked_list* commands; //to be implemented later
   //Probably want to have a linked_tokens struct instead 
   command_stream_t* next; //pointer to next command stream
   command_t comm; // value read this value from read command 
@@ -91,12 +107,18 @@ struct commeand_stream{
  //STACK FUNCTIONALITY IMPLEMENTED HERE
 void push(void *p, command_t add)
 { 
-  stack * item = (stack*) p;
+  stack_t item = (stack_t) p;
+  
   item->num_cmds++;
   
-  node* next_node = (node*)checked_malloc(sizeof(node));
-  next_node->val = add;
+  node_t next_node = (node_t)checked_malloc(sizeof(node_t));
   
+  next_node->val = add;
+  next_node->next=NULL;
+  if(item->top==NULL){
+	item->top=next_node;
+	return;
+  }
   next_node->next = item->top;
   item->top = next_node;
 } 
@@ -152,7 +174,7 @@ make_command_stream (int (*get_next_byte) (void *),
    //FIRST GET INPUT FROM CONSOLE 
    //Taken from SROT13 CS 35L
   char next_arg;
-  int count_char 0;
+  int count_char = 0;
   
   //Intializes the array of chars for all of the command input by console
   int maxbuffspace = 1024;
@@ -167,7 +189,7 @@ make_command_stream (int (*get_next_byte) (void *),
     //Evaluating 
     //HOW TO PARSE THE COMMAND 
     //The algorithm is for the -p option only applicable once you have parsed and have your commands
-    ready 
+     
     //Execute the command is for LATER 
     //Note down the operation redirectors 
     //Look up tokens and make up specific types of string 
@@ -200,7 +222,7 @@ make_command_stream (int (*get_next_byte) (void *),
   }
   while (next_arg != -1); 
   
-  linked_tokens * start = make_linked_tokens(&input, count_char);
+  linked_tokens_t * start = make_linked_tokens(&input, count_char);
   //At this point entire input from console has been taken 
   //What we should be doing at this point is to tokenize the input stream and prepare to parse them
   //Call on split trees 
@@ -217,13 +239,13 @@ make_command_stream (int (*get_next_byte) (void *),
 
 //It appears 
 
-linked_tokens * make_linked_tokens(char* p_input, int input_size)
+linked_tokens_t * make_linked_tokens(char* p_input, int input_size)
 {
   token_t * start_token = make_token(HEAD, NULL);
   token_t * current_token = start_token;
   
-  linked_tokens_t * start_linked_tokens = checked_malloc(sizeof(linked_tokens_t));
-  lniked_tokens_t * current_linked_tokens = start_linked_tokens;
+  linked_tokens_t * start_linked_tokens = makeLinkedTokens();
+  linked_tokens_t * current_linked_tokens = start_linked_tokens;
   current_linked_tokens->head = current_token;
   
   // a|bd
