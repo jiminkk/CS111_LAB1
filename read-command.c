@@ -140,15 +140,32 @@ command_t pop(void *p)
   
 }
 
+int stack_size(stack* p)
+{
+	return p->num_cmds;
+}
+
 command_t peek(void *p)
  {
   stack * item = (stack*)  (p); //sketch syntax may be incorrect 
   return item->top->val;
  }
  
- bool higherPrecedence(void * p, command_t * current)
+ //Current Operator must be higher than top of stack
+ bool higherPrecedence(void * p, command_t current)
 {
-	//TO DO IMPLEMENT THIS LATER TO CORRECTLY DETERMINE PRECEDENCE
+	stack_t ops =(stack_t) p;
+	
+	switch(current->type)
+	{
+		case PIPE_COMMAND:
+			return true;
+		case AND_COMMAND:
+		case OR_COMMAND: 
+			return (peek(ops)->type == AND_COMMAND || peek(ops)->type == OR_COMMAND || peek(ops)->type == SEQUENCE_COMMAND);
+		default:
+			return false;
+	}
 }
 
 bool isEmpty(void *p)
@@ -496,7 +513,7 @@ command_stream_t splitTrees(char * input)
   
   
 }
-
+//(a|(a|(a|b)))
 bool make_new_branch(stack * ops, stack * operands)
 {
 	if(operands->num_cmds <2)
@@ -518,7 +535,7 @@ bool make_new_branch(stack * ops, stack * operands)
 	push(operands, new_command);
 	return true;
 }
-
+//(a|(b|(c|d)))
 //Organizes it into proper command_trees
 command_t make_command(token_t * head)
 {
@@ -547,49 +564,161 @@ command_t make_command(token_t * head)
 			case AND:
 				//Pretty sure you just push the thing onto the stack 
 				curr_cmd->type = AND_COMMAND;
-				if (isEmpty(ops))
-					push(ops, curr_cmd);
-				else
+				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
 				{
-					if(higherPrecedence(ops, curr_cmd))
-					{
-						push(ops, curr_cmd);
-						break;
-					}
-					else 
-					{
-						//HOW to detect parenthesis?
-						/*while (peek(ops)-> && !higherPrecedence(ops, curr_cmd))
+					bool branch_success = make_new_branch(ops, operands);
+					if(!branch_success)
 						{
-							
-						}*/
-						
-					}
+							error(2,0, "Error making child branch");
+							return NULL;
+						}
 				}
 				push(ops, curr_cmd);
 				break;
 			case PIPELINE:
 				//Follows same behavior of the &&
 				curr_cmd->type = PIPE_COMMAND;
+				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				{
+					bool branch_success = make_new_branch(ops, operands);
+					if(!branch_success)
+						{
+							error(2,0, "Error making child branch");
+							return NULL;
+						}
+				}
 				push(ops, curr_cmd);
 				break;
 			case OR:
 				//Follows same behavior as |
 				curr_cmd->type = OR_COMMAND;
+				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				{
+					bool branch_success = make_new_branch(ops, operands);
+					if(!branch_success)
+						{
+							error(2,0, "Error making child branch");
+							return NULL;
+						}
+				}
 				push(ops,curr_cmd);
 				break;
 			case SEMICOLON:
+				curr_cmd->type = SEQUENCE_COMMAND;
+				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				{
+					bool branch_success = make_new_branch(ops, operands);
+					if(!branch_success)
+						{
+							error(2,0, "Error making child branch");
+							return NULL;
+						}
+				}
+				push(ops, curr_cmd);
+				break;
 			case WORD:
+				curr_cmd->type = SIMPLE_COMMAND;
+				
+				size_t num_ofWords = 1;
+				token_t * it = current_tok;
+				//curr_cmd->u.word[0] = &(current_tok->value); 
+				//loop through a possible string of multiple words
+				while (it->next != NULL && it->next->trait == WORD)
+				{
+					num_ofWords++;
+					it = it->next;
+				}
+				
+				//ALLOCATE ENOUGH SPACE FOR ALL THE WORDS 
+				curr_cmd->u.word = checked_malloc(num_ofWords * sizeof(char*));
+				
+				//Iterate through tokens again and assign words to curr_cmd->u.word
+				it = current_tok;
+				int u_index = 0;
+				while (it->next != NULL && it->next->trait == WORD)
+				{
+					curr_cmd->u.word[u_index] = it->value;
+					u_index++;
+					it = it->next;
+				}
+				push(ops, curr_cmd);
+				break;
 			case LEFT:
+				if ((prev_cmd==NULL) || (prev_cmd->type != SIMPLE_COMMAND && prev_cmd->type != SUBSHELL_COMMAND))
+					{
+						error(2, 0 ,"Syntax error no input to redirect or non simple/subshell command was there");
+						return NULL;
+					}
+				if (current_tok->trait != WORD)
+				{
+					error(2, 0, "Redirect MUST be followed by a WORD");
+					return NULL;
+				}
+				
+				//CHECK IF PREV_CMD HAS NO OUTPUT OR INPUT or can you?
+				if (prev_cmd->input != NULL)
+				{
+					error(2, 0, "Previous command cannot have an input.");
+					return NULL;
+				}
+				if (prev_cmd->output != NULL)
+				{
+					error(2, 0, "Previous command cannot have an output.");
+					return NULL;
+				}
+				prev_cmd->input = current_tok->value;				
+				break;
 			case RIGHT:
+				if ((prev_cmd==NULL) || (prev_cmd->type != SIMPLE_COMMAND && prev_cmd->type != SUBSHELL_COMMAND))
+					{
+						error(2, 0 ,"Syntax error no input to redirect");
+						return NULL;
+					}
+				if (current_tok->trait !=WORD)
+				{
+					error(2, 0, "Redirect MUST be followed by a WORD");
+					return NULL;
+				}
+				//CHECK IF PREV_CMD HAS NO OUTPUT or CAN YOU HAVE REDIRECTS UPON REDIRECTS
+				if (prev_cmd->output != NULL)
+				{
+					error(2, 0, "Previous command already has some output.");
+					return NULL;
+				}
+				prev_cmd->output = current_tok->value;
+				break;
 			default:
 				break;
 		}
+		prev_cmd = curr_cmd;
 		current_tok = current_tok->next;
 	}
 	while(current_tok != NULL && current_tok->next != NULL);
 	
-	return curr_cmd; //placeholder
+	//WE NEED TO EMPTY THE THE STACK AND COMPLETE THE TREE WITH WHATS LEFT 
+	bool branch_success = true;
+	command_t * root;
+	while(stack_size(ops)>0)
+	{
+		branch_success = make_new_branch(ops, operands);
+		if (!branch_success)
+		{
+			error(2,0,"Error making child branch");
+			return NULL;
+		}
+		
+	}
+	
+	if(stack_size(operands) != 1)
+	{
+		error(2, 0, "Unable to make a complete command tree root is missing");
+		return NULL;
+	}
+	
+	root = pop(operands);
+	
+	//Do we need deconstructors? for the two stacks 
+	return root; //placeholder
 	
 	
 }
