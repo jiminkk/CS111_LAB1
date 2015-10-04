@@ -23,7 +23,7 @@ command_t pop(void *p);
 command_t peek(void *p);
 //no need for memory 
 
-void* make_stack();
+//void* make_stack();
 //Create space in memory 
 
 //Maybe we need a destructor?

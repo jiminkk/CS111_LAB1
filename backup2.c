@@ -492,7 +492,7 @@ bool make_new_branch(stack * ops, stack * operands)
 }
 
 //Organizes it into proper command_trees
-command_t make_command_(token_t * head)
+command_t make_command(token_t * head)
 {
 	stack * operands = checked_malloc(sizeof(stack_t));
 	stack * ops = checked_malloc(sizeof(stack_t));

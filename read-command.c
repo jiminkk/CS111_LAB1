@@ -51,7 +51,7 @@ struct stack{
 	int num_cmds;
 };
 
-void* make_stack(){
+stack_t make_stack(){
 	stack_t tmp = checked_malloc(sizeof(stack));
 	tmp->top = NULL;
 	tmp->num_cmds = 0;
@@ -163,6 +163,8 @@ bool isValidWord(char c)
     return true;
   return false; 
 }
+
+
  
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
@@ -495,13 +497,33 @@ command_stream_t splitTrees(char * input)
   
 }
 
+bool make_new_branch(stack * ops, stack * operands)
+{
+	if(operands->num_cmds <2)
+		return false;
+		
+	//Use one operator and two oeprands 
+	command_t operator = pop(ops);
+	command_t second_command = pop(operands);
+	command_t first_command = pop(operands);
+
+	
+	//Make the new command with its left and right parts
+	command_t new_command = checked_malloc(sizeof(struct command));
+	new_command->u.command[0] = first_command;
+	new_command->u.command[1] = second_command;
+	new_command->type = operator->type;
+	
+	//Add this new command tothe operand stack
+	push(operands, new_command);
+	return true;
+}
+
 //Organizes it into proper command_trees
 command_t make_command(token_t * head)
 {
-	stack * operands = checked_malloc(sizeof(stack_t));
-	stack * ops = checked_malloc(sizeof(stack_t));
-	operands->num_cmds =0;
-	ops->num_cmds =0;
+	stack_t * operands = make_stack();
+	stack_t * ops = make_stack();
 	token_t * current_tok = head;
 	command_t curr_cmd;
 	command_t prev_cmd = NULL;
