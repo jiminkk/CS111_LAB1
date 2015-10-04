@@ -23,7 +23,7 @@ enum token_trait
   AND,
   OR,
   SUBSHELL,
-  HEAD,
+  SIMPLE_COMMAND,
   PIPELINE,
   LEFT,
   RIGHT,
@@ -32,34 +32,21 @@ enum token_trait
 
 typedef struct token token_t;
 typedef struct linked_list * linked_list_t;
-typedef struct linked_tokens linked_tokens_t;
-//typedef struct linked_tokens linked_tokens;
 typedef struct stack * stack_t;
-typedef struct stack stack;
-typedef struct node node;
 typedef struct node * node_t;
-
-linked_tokens_t* make_linked_tokens(char* p_input, int input_size);
 
 struct node {
 	command_t val;
-	node_t next;
+	node* next;
 };
 
 struct stack{
-	node_t top;
+	node* top;
 	int num_cmds;
 };
 
-void* make_stack(){
-	stack_t tmp = checked_malloc(sizeof(stack));
-	tmp->top = NULL;
-	tmp->num_cmds = 0;
-	return tmp;
-}
-
 struct linked_list{
-	node_t head;
+	node* head;
 };
 
 //This is specifically made for a linked list of tokens 
@@ -67,18 +54,19 @@ struct token
 {
   char *value;
   enum token_trait trait;
-  token_t* next;
+  *token next;
 };
 
 token_t * make_token(enum token_trait type, char *value)
 { 
-  token_t * product = checked_malloc(sizeof(token_t));
+  token * product = checked_malloc(sizeof(token));
   product->trait = type;
-  product->value = value;
-  product->next = NULL;
+  product->value = *value;
+  product->next = NULL:
   return product;
 }
 //This struct will hold tokens that will all be used to parse one command tree through 
+typedef struct linked_tokens linked_tokens_t;
 
 struct linked_tokens
 {
@@ -86,20 +74,13 @@ struct linked_tokens
   linked_tokens_t* next;
 };
 
-//Constructor
-linked_tokens_t* makeLinkedTokens(){
-	linked_tokens_t* temp = checked_malloc(sizeof(linked_tokens_t));
-	temp->head = NULL;
-	temp->next = NULL;
-	return temp;
-}
 
 //Constructor should be made to create linked_tokens 
 //Destructor as well
 // 
 struct commeand_stream{
   //A collection of all the command objects 
-  //linked_list* commands; //to be implemented later
+  linked_list* commands; //to be implemented later
   //Probably want to have a linked_tokens struct instead 
   command_stream_t* next; //pointer to next command stream
   command_t comm; // value read this value from read command 
@@ -110,18 +91,12 @@ struct commeand_stream{
  //STACK FUNCTIONALITY IMPLEMENTED HERE
 void push(void *p, command_t add)
 { 
-  stack_t item = (stack_t) p;
-  
+  stack * item = (stack*) p;
   item->num_cmds++;
   
-  node_t next_node = (node_t)checked_malloc(sizeof(node_t));
-  
+  node* next_node = (node*)checked_malloc(sizeof(node));
   next_node->val = add;
-  next_node->next=NULL;
-  if(item->top==NULL){
-	item->top=next_node;
-	return;
-  }
+  
   next_node->next = item->top;
   item->top = next_node;
 } 
@@ -177,7 +152,7 @@ make_command_stream (int (*get_next_byte) (void *),
    //FIRST GET INPUT FROM CONSOLE 
    //Taken from SROT13 CS 35L
   char next_arg;
-  int count_char = 0;
+  int count_char 0;
   
   //Intializes the array of chars for all of the command input by console
   int maxbuffspace = 1024;
@@ -186,13 +161,13 @@ make_command_stream (int (*get_next_byte) (void *),
   do 
   {
     //Get the next byte 
-    next_arg = (*get_next_byte)(get_next_byte_argument);
+    next_arg = *(get_next_byte)(get_next_byte_argument);
     
     //Get the whole string of command 
     //Evaluating 
     //HOW TO PARSE THE COMMAND 
     //The algorithm is for the -p option only applicable once you have parsed and have your commands
-     
+    ready 
     //Execute the command is for LATER 
     //Note down the operation redirectors 
     //Look up tokens and make up specific types of string 
@@ -225,7 +200,7 @@ make_command_stream (int (*get_next_byte) (void *),
   }
   while (next_arg != -1); 
   
-  linked_tokens_t * start = make_linked_tokens(&input, count_char);
+  linked_tokens * start = make_linked_tokens(&input, count_char);
   //At this point entire input from console has been taken 
   //What we should be doing at this point is to tokenize the input stream and prepare to parse them
   //Call on split trees 
@@ -242,13 +217,13 @@ make_command_stream (int (*get_next_byte) (void *),
 
 //It appears 
 
-linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
+linked_tokens * make_linked_tokens(char* p_input, int input_size)
 {
   token_t * start_token = make_token(HEAD, NULL);
   token_t * current_token = start_token;
   
-  linked_tokens_t * start_linked_tokens = makeLinkedTokens();
-  linked_tokens_t * current_linked_tokens = start_linked_tokens;
+  linked_tokens_t * start_linked_tokens = checked_malloc(sizeof(linked_tokens_t));
+  lniked_tokens_t * current_linked_tokens = start_linked_tokens;
   current_linked_tokens->head = current_token;
   
   // a|bd
@@ -272,7 +247,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
       //let's allocate memory for the subshell (more than one char)
       size_t count_subshell=0;
       size_t size_subshell = 128;
-      char* subshell = (char*)checked_malloc(size_subshell);
+      char* subshell = checked_malloc(size_subshell);
 
       //until we reach the end of the nested parentheses.
       while(parenCount > 0)
@@ -446,24 +421,23 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
       //**ATTEMPT TO FIND THE ENTIRE WORD AND THEN PASS THAT AS A TOKEN
       int word_space = 8; //size of a char
       int word_index =0;
-      char * word = checked_malloc(sizeof(word_space)); //stores entire word
+      char * word = checked_malloc(sizeof(word_size)); //stores entire word
       do
       {
         ch = *p_input;
         if (!isValidWord(ch))
           {
             error(2, 0, "Error unrecognized character detected");
-            return NULL;
+            return NULL:
           }
         if (word_index == word_space)
         {
           word_space *=8;
           word = checked_realloc(word, word_space);
-		  word[word_index] = ch;
-		  p_input++;
-          index++;
-		}
-	   }
+        word[word_index] = ch;
+        p_input++;
+        index++;
+      }
       while(index < input_size && isValidWord(ch) && ch != EOF);
       
       token_t * tok = make_token(WORD, word);
@@ -495,8 +469,30 @@ command_stream_t splitTrees(char * input)
   
 }
 
+bool make_new_branch(stack * ops, stack * operands)
+{
+	if(operands->num_cmds <2)
+		return false;
+		
+	//Use one operator and two oeprands 
+	command_t operator = pop(ops);
+	command_t second_command = pop(operands);
+	command_t first_command = pop(operands);
+
+	
+	//Make the new command with its left and right parts
+	command_t new_command = checked_malloc(sizeof(command));
+	new_command->u.command[0] = first_command;
+	new_command->u.command[1] = second_command;
+	new_command->type = operator->type;
+	
+	//Add this new command tothe operand stack
+	push(operands, new_command);
+	return true;
+}
+
 //Organizes it into proper command_trees
-command_t make_command(token_t * head)
+command_t make_command_(token_t * head)
 {
 	stack * operands = checked_malloc(sizeof(stack_t));
 	stack * ops = checked_malloc(sizeof(stack_t));
@@ -508,23 +504,23 @@ command_t make_command(token_t * head)
 	do 
 	{
 		//Check for redirect operators if there are not redirectors then make a new command  
-		if(current_tok->trait != LEFT && current_tok->trait != RIGHT)
+		if(current_tok->token_trait != LEFT && current_tok->token_trait != RIGHT)
 		{
-			curr_cmd = checked_malloc(sizeof(struct command)); //is this syntax ok?
+			curr_cmd = checked_malloc(sizeof(struct command));
 		}
 		
-		switch (current_tok->trait)
+		switch (current_tok->token_trait)
 		{
 			case SUBSHELL:
 				//Make another tree with the subshell command by calling on make_command...
-				curr_cmd->u.subshell_command = make_command(make_linked_tokens(current_tok->value, strlen(current_tok->value))->head);
+				curr_cmd->u.subshell_command = make_command(make_linked_tokens(curr_cmd->value, strlen(*curr_cmd->value))->head);
 				
 				//Add this operand to the operand stack
 				push(operands, curr_cmd);
 				break;
 			case AND:
 				//Pretty sure you just push the thing onto the stack 
-				curr_cmd->type = AND_COMMAND;
+				curr_cmd->command_type = AND_COMMAND;
 				if (isEmpty(ops))
 					push(ops, curr_cmd);
 				else
@@ -536,11 +532,11 @@ command_t make_command(token_t * head)
 					}
 					else 
 					{
-						//HOW to detect parenthesis?
-						/*while (peek(ops)-> && !higherPrecedence(ops, curr_cmd))
+						//CHECK for parenthesis atm
+						while (peek(ops)-> && !higherPrecedence(ops, curr_cmd))
 						{
-							
-						}*/
+							make_new_branch(ops, operands);
+						}
 						
 					}
 				}
@@ -548,26 +544,22 @@ command_t make_command(token_t * head)
 				break;
 			case PIPELINE:
 				//Follows same behavior of the &&
-				curr_cmd->type = PIPE_COMMAND;
+				curr_cmd->command_type = PIPE_COMMAND;
 				push(ops, curr_cmd);
 				break;
 			case OR:
 				//Follows same behavior as |
-				curr_cmd->type = OR_COMMAND;
+				curr_cmd->command_type = OR_COMMAND;
 				push(ops,curr_cmd);
 				break;
 			case SEMICOLON:
 			case WORD:
 			case LEFT:
 			case RIGHT:
-			default:
-				break;
 		}
 		current_tok = current_tok->next;
 	}
-	while(current_tok != NULL && current_tok->next != NULL);
-	
-	return curr_cmd; //placeholder
+	while(current_tok != NULL && current_tok->next != NULL)
 	
 	
 }
