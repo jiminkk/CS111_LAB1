@@ -2,7 +2,7 @@
 
 #include "command.h"
 #include "command-internals.h"
-
+#include "alloc.h"
 #include <error.h>
 #include <stdlib.h>
 #include <stdbool.h> //allows support of bool type
@@ -52,7 +52,7 @@ struct stack{
 };
 
 stack_t make_stack(){
-	stack_t tmp = checked_malloc(sizeof(stack));
+	stack_t tmp = checked_malloc(sizeof(struct stack));
 	tmp->top = NULL;
 	tmp->num_cmds = 0;
 	return tmp;
@@ -223,6 +223,7 @@ make_command_stream (int (*get_next_byte) (void *),
       do
       {
         next_arg = get_next_byte(get_next_byte_argument);
+		printf("Line 226");
       }
       while(next_arg != '\n' || next_arg != EOF || next_arg != -1);
     }
@@ -240,11 +241,11 @@ make_command_stream (int (*get_next_byte) (void *),
       
     }
     
-    
+    printf("Line 244");
   }
   while (next_arg != -1); 
   
-  linked_tokens_t * start = make_linked_tokens(&input, count_char);
+  linked_tokens_t * start = make_linked_tokens(input, count_char);
   //At this point entire input from console has been taken 
   //What we should be doing at this point is to tokenize the input stream and prepare to parse them
   //Call on split trees 
@@ -292,7 +293,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
       size_t count_subshell=0;
       size_t size_subshell = 128;
       char* subshell = (char*)checked_malloc(size_subshell);
-
+	  printf("Line 96");
       //until we reach the end of the nested parentheses.
       while(parenCount > 0)
       {
@@ -300,7 +301,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
         p_input++;
 
         // subshell_line = token_line;
-
+		printf("Line 304");
         //if the index is outside the bounds.
         if(index == input_size)
         {
@@ -413,7 +414,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
       //IF WORD OR SUBSHELL BEFORE NEWLINE, it's a separate command.
       if(current_token->trait == WORD || current_token->trait == SUBSHELL)
       {
-        if(current_token != HEAD)
+        if(current_token->trait != HEAD)
         {
           current_linked_tokens->next = checked_malloc(sizeof(linked_tokens_t));
           current_linked_tokens = current_linked_tokens->next;
@@ -482,6 +483,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 		  p_input++;
           index++;
 		}
+		printf("Line 486");
 	   }
       while(index < input_size && isValidWord(ch) && ch != EOF);
       
@@ -499,7 +501,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
   }
   return start_linked_tokens;
 }
-command_stream_t splitTrees(char * input)
+/*command_stream_t splitTrees(char * input)
 {
   //The passed in buffer arg holds the entire string input from the console 
   //Iterate through the buffer until a character indicates the start of a large string 
@@ -512,7 +514,7 @@ command_stream_t splitTrees(char * input)
   //Add the command tree to the stream 
   
   
-}
+}*/
 //(a|(a|(a|b)))
 bool make_new_branch(stack * ops, stack * operands)
 {
@@ -539,8 +541,8 @@ bool make_new_branch(stack * ops, stack * operands)
 //Organizes it into proper command_trees
 command_t make_command(token_t * head)
 {
-	stack_t * operands = make_stack();
-	stack_t * ops = make_stack();
+	stack_t operands = make_stack();
+	stack_t ops = make_stack();
 	token_t * current_tok = head;
 	command_t curr_cmd;
 	command_t prev_cmd = NULL;
@@ -627,6 +629,7 @@ command_t make_command(token_t * head)
 				{
 					num_ofWords++;
 					it = it->next;
+					printf("Line 632");
 				}
 				
 				//ALLOCATE ENOUGH SPACE FOR ALL THE WORDS 
@@ -692,14 +695,16 @@ command_t make_command(token_t * head)
 		}
 		prev_cmd = curr_cmd;
 		current_tok = current_tok->next;
+		printf("Line 698");
 	}
 	while(current_tok != NULL && current_tok->next != NULL);
 	
 	//WE NEED TO EMPTY THE THE STACK AND COMPLETE THE TREE WITH WHATS LEFT 
 	bool branch_success = true;
-	command_t * root;
+	command_t root;
 	while(stack_size(ops)>0)
 	{
+		printf("Line 707");
 		branch_success = make_new_branch(ops, operands);
 		if (!branch_success)
 		{
