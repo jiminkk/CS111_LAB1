@@ -31,6 +31,7 @@ enum token_trait
 };
 
 typedef struct token token_t;
+
 typedef struct linked_list * linked_list_t;
 typedef struct linked_tokens linked_tokens_t;
 //typedef struct linked_tokens linked_tokens;
@@ -40,6 +41,7 @@ typedef struct node node;
 typedef struct node * node_t;
 
 linked_tokens_t* make_linked_tokens(char* p_input, int input_size);
+command_t make_command(token_t * head);
 
 struct node {
 	command_t val;
@@ -51,12 +53,11 @@ struct stack{
 	int num_cmds;
 };
 
-stack_t make_stack(){
-	stack_t tmp = checked_malloc(sizeof(struct stack));
-	tmp->top = NULL;
-	tmp->num_cmds = 0;
-	return tmp;
-}
+struct linked_tokens
+{
+  token_t* head;
+  linked_tokens_t* next;
+};
 
 struct linked_list{
 	node_t head;
@@ -70,6 +71,22 @@ struct token
   token_t* next;
 };
 
+
+
+stack_t make_stack(){
+	printf("Making a stack");
+	stack_t tmp = checked_malloc(sizeof(struct stack));
+	tmp->top = NULL;
+	tmp->num_cmds = 0;
+	return tmp;
+}
+
+//dunno about this one
+void free_stack(stack_t this_stack){
+	free(this_stack);
+	return;
+}
+
 token_t * make_token(enum token_trait type, char *value)
 { 
   token_t * product = checked_malloc(sizeof(token_t));
@@ -80,11 +97,31 @@ token_t * make_token(enum token_trait type, char *value)
 }
 //This struct will hold tokens that will all be used to parse one command tree through 
 
-struct linked_tokens
+void free_linked_tokens(linked_tokens_t* linkedTokens)
 {
-  token_t* head;
-  linked_tokens_t* next;
-};
+	linked_tokens_t* current = linkedTokens;
+	linked_tokens_t* previous;
+	
+	while(current != NULL)
+	{
+		token_t* curr_token = current->head;
+		token_t* prev_token;
+		
+		while(curr_token != NULL)
+		{
+			prev_token = curr_token;
+			curr_token = prev_token->next;
+			free(prev_token);
+		}
+		
+		previous = current;
+		current = current->next;
+		free(current);
+	}
+	return;
+}
+
+
 
 //Constructor
 linked_tokens_t* makeLinkedTokens(){
@@ -97,17 +134,15 @@ linked_tokens_t* makeLinkedTokens(){
 //Constructor should be made to create linked_tokens 
 //Destructor as well
 // 
-struct commeand_stream{
+struct command_stream{
   //A collection of all the command objects 
   //linked_list* commands; //to be implemented later
   //Probably want to have a linked_tokens struct instead 
-  command_stream_t* next; //pointer to next command stream
+  command_stream_t next; //pointer to next command stream
   command_t comm; // value read this value from read command 
 };
 
-
-
- //STACK FUNCTIONALITY IMPLEMENTED HERE
+//STACK FUNCTIONALITY IMPLEMENTED HERE
 void push(void *p, command_t add)
 { 
   stack_t item = (stack_t) p;
@@ -182,7 +217,9 @@ bool isValidWord(char c)
 }
 
 
- 
+
+
+
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
          void *get_next_byte_argument)
@@ -197,7 +234,7 @@ make_command_stream (int (*get_next_byte) (void *),
    //Taken from SROT13 CS 35L
   char next_arg;
   int count_char = 0;
-  
+  command_stream_t head = NULL;
   //Intializes the array of chars for all of the command input by console
   int maxbuffspace = 1024;
   char *input = (char*)checked_malloc(sizeof(char) * maxbuffspace);
@@ -225,7 +262,7 @@ make_command_stream (int (*get_next_byte) (void *),
         next_arg = get_next_byte(get_next_byte_argument);
 		printf("Line 226");
       }
-      while(next_arg != '\n' || next_arg != EOF || next_arg != -1);
+      while(next_arg != '\n' && next_arg != EOF && next_arg != -1);
     }
     
     if(next_arg !=-1 && next_arg != EOF)
@@ -241,11 +278,48 @@ make_command_stream (int (*get_next_byte) (void *),
       
     }
     
-    printf("Line 244");
+    //printf("Line 244");
   }
   while (next_arg != -1); 
   
+  int i;
+  /*for(i=0; i<pos; i++)
+  {
+	printf(input[i]);
+  }*/
   linked_tokens_t * start = make_linked_tokens(input, count_char);
+  
+  
+  //MAKING ALL THE TRESS AND LINKING ALL THE TREES AT THIS POINT
+  
+	linked_tokens_t * token_stream = start;
+	command_stream_t stream_head = NULL;
+	command_stream_t curr_stream = NULL;
+	command_stream_t prev_stream = NULL;
+	
+	while(stream_head != NULL && stream_head->next != NULL)
+	{
+		token_t* current_tok = token_stream->head->next;
+		command_t current_cmd = make_command(current_tok);
+		
+		curr_stream = checked_malloc(sizeof(struct command_stream));
+		curr_stream->comm = current_cmd;
+		
+		if (!stream_head)
+		{
+			stream_head = curr_stream;
+			prev_stream = stream_head;
+		}
+		else
+		{
+			prev_stream->next = curr_stream;
+			prev_stream = curr_stream;
+		}
+		
+		curr_stream = curr_stream->next;
+		
+	}
+
   //At this point entire input from console has been taken 
   //What we should be doing at this point is to tokenize the input stream and prepare to parse them
   //Call on split trees 
@@ -253,12 +327,37 @@ make_command_stream (int (*get_next_byte) (void *),
   //After splitting the trees linking must occur within to create the command stream linked list
   //return and it is complete! 
   
+   
+  //Need to make actual command stream
+  //head = make_command(start);
   
   
   
-  error (1, 0, "command reading not yet implemented");
-  return 0;
+  //error (1, 0, "command reading not yet implemented");
+  return stream_head;
 }
+
+/*command_stream_t make_command_forest(linked_tokens_t * token_stream)
+{
+	linked_tokens_t * = token_stream;
+	command_stream_t stream_head = NULL;
+	command_stream_t curr_stream = NULL;
+	command_stream_t prev_stream = NULL;
+	
+	while(stream_head != NULL && stream_head->next != NULL)
+	{
+		token_t* current_tok = token_stream->head->next;
+		command_t current_cmd = make_command(current_tok);
+		
+		current_tree = check_malloc(sizeof(struct command_stream));
+		current_tree->
+		prev_stream = curr_stream;
+		curr_stream->next = curr_stream;
+		
+		
+	}
+	return tree_head;
+}*/
 
 //It appears 
 
@@ -280,7 +379,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
   while (index < input_size)
   {
     ch = *p_input;
-
+	printf("line 317");
     //In the case of a parenthesis AKA SUBSHELL
     if(ch=='(')
     {
@@ -301,7 +400,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
         p_input++;
 
         // subshell_line = token_line;
-		printf("Line 304");
+		printf("Line 338");
         //if the index is outside the bounds.
         if(index == input_size)
         {
@@ -317,6 +416,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
           {
             p_input++;
             index++;
+			printf("line 317");
           }
 
           //newlines are special -- it can be substituted for semicolon.
@@ -484,6 +584,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
           index++;
 		}
 		printf("Line 486");
+		printf("character is:%c", ch);
 	   }
       while(index < input_size && isValidWord(ch) && ch != EOF);
       
@@ -643,6 +744,7 @@ command_t make_command(token_t * head)
 					curr_cmd->u.word[u_index] = it->value;
 					u_index++;
 					it = it->next;
+					printf("line 681");
 				}
 				push(ops, curr_cmd);
 				break;
