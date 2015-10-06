@@ -1,1 +1,10 @@
 git commands
+
+git add . 
+git comit -m "YOUR MESSAGE HERE"
+git push 
+
+
+PW: rlawlals95
+
+git pull 
