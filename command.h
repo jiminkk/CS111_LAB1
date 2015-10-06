@@ -9,9 +9,9 @@ typedef struct command_stream *command_stream_t;
 struct linked_list;
 struct stack;
 
-
+/*
 //Put command into the stack
-void push(void *p, command_t extra);
+void push(stack * p, command_t extra);
 //allocate memory from sizeof(command)
 
 //Put remove top item from stack and put it into result
@@ -27,7 +27,7 @@ command_t peek(void *p);
 //Create space in memory 
 
 //Maybe we need a destructor?
-
+*/
 
 
 

@@ -56,6 +56,7 @@ main (int argc, char **argv)
   command_t command;
   while ((command = read_command_stream (command_stream)))
     {
+		//printf("Stuck in main!");
       if (print_tree)
 	{
 	  printf ("# %d\n", command_number++);

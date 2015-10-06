@@ -39,6 +39,7 @@ typedef struct stack * stack_t;
 typedef struct stack stack;
 typedef struct node node;
 typedef struct node * node_t;
+int make_branch_count = 0;
 
 linked_tokens_t* make_linked_tokens(char* p_input, int input_size);
 command_t make_command(token_t * head);
@@ -74,7 +75,7 @@ struct token
 
 
 stack_t make_stack(){
-	printf("Making a stack");
+	printf("Making a stack\n");
 	stack_t tmp = checked_malloc(sizeof(struct stack));
 	tmp->top = NULL;
 	tmp->num_cmds = 0;
@@ -104,6 +105,7 @@ void free_linked_tokens(linked_tokens_t* linkedTokens)
 	
 	while(current != NULL)
 	{
+		printf("line 106");
 		token_t* curr_token = current->head;
 		token_t* prev_token;
 		
@@ -112,6 +114,7 @@ void free_linked_tokens(linked_tokens_t* linkedTokens)
 			prev_token = curr_token;
 			curr_token = prev_token->next;
 			free(prev_token);
+			printf("line 116");
 		}
 		
 		previous = current;
@@ -140,35 +143,35 @@ struct command_stream{
   //Probably want to have a linked_tokens struct instead 
   command_stream_t next; //pointer to next command stream
   command_t comm; // value read this value from read command 
+  
 };
 
 //STACK FUNCTIONALITY IMPLEMENTED HERE
-void push(void *p, command_t add)
+void push(stack_t p, command_t add)
 { 
-  stack_t item = (stack_t) p;
-  
-  item->num_cmds++;
-  
+  //stack_t item = (stack_t) p;
+  p->num_cmds++;
   node_t next_node = (node_t)checked_malloc(sizeof(node_t));
   
   next_node->val = add;
   next_node->next=NULL;
-  if(item->top==NULL){
-	item->top=next_node;
+  if(p->top==NULL){
+	p->top=next_node;
 	return;
   }
-  next_node->next = item->top;
-  item->top = next_node;
+  next_node->next = p->top;
+  p->top = next_node;
 } 
 
-command_t pop(void *p)
+command_t pop(stack_t p)
 {
-  stack * item = (stack*) p;
-  if (item->top != NULL)
+  if (p->top != NULL)
   { 
-    item->num_cmds--;
-    command_t info = item->top->val;
-    item->top->next = item->top;
+    p->num_cmds--;
+    command_t info = p->top->val;
+	node_t delete = p->top;
+    p->top->next = p->top;
+	//free(delete);
     return info;
   }
   return NULL;
@@ -180,10 +183,9 @@ int stack_size(stack* p)
 	return p->num_cmds;
 }
 
-command_t peek(void *p)
+command_t peek(stack_t p)
  {
-  stack * item = (stack*)  (p); //sketch syntax may be incorrect 
-  return item->top->val;
+  return p->top->val;
  }
  
  //Current Operator must be higher than top of stack
@@ -211,7 +213,7 @@ bool isEmpty(void *p)
 
 bool isValidWord(char c)
 { 
-  if(isalnum(c) || strchr("!&+,-./:@^_", c) != NULL)
+  if(isalnum(c) || strchr("!+,-./:@^_", c) != NULL)
     return true;
   return false; 
 }
@@ -260,7 +262,7 @@ make_command_stream (int (*get_next_byte) (void *),
       do
       {
         next_arg = get_next_byte(get_next_byte_argument);
-		printf("Line 226");
+		//printf("Line 226");
       }
       while(next_arg != '\n' && next_arg != EOF && next_arg != -1);
     }
@@ -268,13 +270,14 @@ make_command_stream (int (*get_next_byte) (void *),
     if(next_arg !=-1 && next_arg != EOF)
     {
       count_char++;
-      input[pos++] = next_arg;
+      input[pos] = next_arg;
       if (pos == maxbuffspace)
       {
         input = (char*)checked_realloc(input, maxbuffspace * 2);
         maxbuffspace *= 2;
       //printf("sucessful realloc\n");
       }
+	  pos++;
       
     }
     
@@ -283,13 +286,20 @@ make_command_stream (int (*get_next_byte) (void *),
   while (next_arg != -1); 
   
   int i;
-  /*for(i=0; i<pos; i++)
+  /*for (i=0; i<pos; i++)
   {
-	printf(input[i]);
+	printf("%c",input[i]);
   }*/
+		
+  //OUTPUT NOW WORKS
   linked_tokens_t * start = make_linked_tokens(input, count_char);
+  printf("Concluded make_linked_tokens \n");
   
-  
+  if (start == NULL)
+  {
+	error(4, 0, "Error during tokenization");
+	exit(1);
+  }
   //MAKING ALL THE TRESS AND LINKING ALL THE TREES AT THIS POINT
   
 	linked_tokens_t * token_stream = start;
@@ -297,8 +307,9 @@ make_command_stream (int (*get_next_byte) (void *),
 	command_stream_t curr_stream = NULL;
 	command_stream_t prev_stream = NULL;
 	
-	while(stream_head != NULL && stream_head->next != NULL)
+	while(token_stream != NULL) //&& token_stream->next != NULL)
 	{
+		printf("Entered Branch Making portion of make_command_stream \n");
 		token_t* current_tok = token_stream->head->next;
 		command_t current_cmd = make_command(current_tok);
 		
@@ -316,7 +327,7 @@ make_command_stream (int (*get_next_byte) (void *),
 			prev_stream = curr_stream;
 		}
 		
-		curr_stream = curr_stream->next;
+		token_stream = token_stream->next;
 		
 	}
 
@@ -334,32 +345,14 @@ make_command_stream (int (*get_next_byte) (void *),
   
   
   //error (1, 0, "command reading not yet implemented");
+  if(stream_head ==NULL)
+  {
+	error(2,0,"STREAM_HEAD IS NULL");
+	exit(1);
+  }
+  printf("Branches made: %i \n", make_branch_count);
   return stream_head;
 }
-
-/*command_stream_t make_command_forest(linked_tokens_t * token_stream)
-{
-	linked_tokens_t * = token_stream;
-	command_stream_t stream_head = NULL;
-	command_stream_t curr_stream = NULL;
-	command_stream_t prev_stream = NULL;
-	
-	while(stream_head != NULL && stream_head->next != NULL)
-	{
-		token_t* current_tok = token_stream->head->next;
-		command_t current_cmd = make_command(current_tok);
-		
-		current_tree = check_malloc(sizeof(struct command_stream));
-		current_tree->
-		prev_stream = curr_stream;
-		curr_stream->next = curr_stream;
-		
-		
-	}
-	return tree_head;
-}*/
-
-//It appears 
 
 linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 {
@@ -379,10 +372,11 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
   while (index < input_size)
   {
     ch = *p_input;
-	printf("line 317");
+	printf("line 317 \n");
     //In the case of a parenthesis AKA SUBSHELL
     if(ch=='(')
     {
+		printf("In the subshell case");
       //(ab) ->subshell token
       //a|b -> a is left | is pipeline b is right
       //
@@ -392,7 +386,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
       size_t count_subshell=0;
       size_t size_subshell = 128;
       char* subshell = (char*)checked_malloc(size_subshell);
-	  printf("Line 96");
+	  printf("Line 96 \n");
       //until we reach the end of the nested parentheses.
       while(parenCount > 0)
       {
@@ -400,7 +394,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
         p_input++;
 
         // subshell_line = token_line;
-		printf("Line 338");
+		printf("Line 338 \n");
         //if the index is outside the bounds.
         if(index == input_size)
         {
@@ -416,7 +410,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
           {
             p_input++;
             index++;
-			printf("line 317");
+			printf("line 317 \n");
           }
 
           //newlines are special -- it can be substituted for semicolon.
@@ -464,6 +458,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
     //Beginning of a case of & and &&
     else if(ch=='&') 
     {
+	  printf("In the & case \n"); 
       p_input++;
       index++;
       if (*p_input == '&')
@@ -471,6 +466,8 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
         token_t * tok = make_token(AND, NULL);
         current_token->next = tok;
         current_token = current_token->next;
+		p_input++;
+		index++;
       }
       else
       {
@@ -481,16 +478,21 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 
     //PIPE CASE
     else if(ch=='|') 
-    { //a|b
+    { 
+		printf("In the pipe case \n");
+		//a|b
       //CHECK FOR || CASE
       p_input++;
       index++;
       //OR
       if (*p_input == '|')
       {
+		printf("Actually it was an OR\n");
         token_t * tok = make_token(OR, NULL);
         current_token->next = tok;
         current_token = current_token->next;
+		p_input++;
+		index++;
       }
       //PIPELINE
       else
@@ -511,6 +513,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
     //NEWLINE CASE
     else if(ch=='\n')
     {
+		printf("in the newline case \n");
       //IF WORD OR SUBSHELL BEFORE NEWLINE, it's a separate command.
       if(current_token->trait == WORD || current_token->trait == SUBSHELL)
       {
@@ -535,23 +538,30 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
     //SEMICOLON CASE
     else if(ch==';')
     {
+		printf("In the semicolon case \n");
       token_t * tok = make_token(SEMICOLON, NULL);
       current_token->next = tok;
       current_token = current_token->next;
+	  p_input++;
+	  index++;
       //Have to consider incrementing JASMINE
     }
 
     //RIGHT DIRECT CASE
     else if(ch=='>')  
     {
+		printf("In right redirect case \n");
       token_t * tok = make_token(RIGHT, NULL);
       current_token->next = tok;
       current_token = current_token->next;
+	  index++;
+	  p_input++;
     }
 
     //LEFT DIRECT
     else if(ch=='<')  
     {
+		printf("In the left redirect case \n");
       index++;
       p_input++;
       token_t * tok = make_token(LEFT, NULL);
@@ -560,43 +570,48 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
     }
 
     //VALID WORD CASE
-    else if(isValidWord(ch))
+    else if (isValidWord(ch))
     {
+		//printf("Currently presently valid word case \n");
       //OVERALL IDEA
       //**ATTEMPT TO FIND THE ENTIRE WORD AND THEN PASS THAT AS A TOKEN
       int word_space = 8; //size of a char
-      int word_index =0;
-      char * word = checked_malloc(sizeof(word_space)); //stores entire word
+      int word_index =0; 
+      char * word = checked_malloc(sizeof(word_space+1)); //stores entire word
+	  
       do
       {
-        ch = *p_input;
-        if (!isValidWord(ch))
-          {
-            error(2, 0, "Error unrecognized character detected");
-            return NULL;
-          }
+		printf("character is:%c \n", ch);
+		word[word_index] = ch;
+		word_index++;
+		
+        //ch = *p_input; //p_input never changes! thus its infinite
         if (word_index == word_space)
         {
           word_space *=8;
           word = checked_realloc(word, word_space);
-		  word[word_index] = ch;
-		  p_input++;
-          index++;
 		}
-		printf("Line 486");
-		printf("character is:%c", ch);
+		p_input++;
+		index++;
+		ch = *p_input;
+		printf("Line 486 \n");
+		
 	   }
       while(index < input_size && isValidWord(ch) && ch != EOF);
-      
+	  
+      //word = checked_realloc(word, (word_index+2) * sizeof(char));
+	  word[word_index+1] = '\0';
+	  printf("Final word is %s \n", word);
       token_t * tok = make_token(WORD, word);
       current_token->next = tok;
       current_token = current_token->next;
     }
-
-    //FOR ANY OTHER CHARACTER THAT IS UNRECOGNIZED
+	//FOR ANY OTHER CHARACTER THAT IS UNRECOGNIZED
     else
     {
+	  printf("Character not recognized is: %i", *p_input);
       error(2, 0, "Unrecognized characters.");
+	  
       return NULL;
     }
   }
@@ -619,7 +634,10 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 //(a|(a|(a|b)))
 bool make_new_branch(stack * ops, stack * operands)
 {
-	if(operands->num_cmds <2)
+	
+	printf("Entered make_new_branch \n");
+	
+	if(!isEmpty(ops) && stack_size(operands) <2)
 		return false;
 		
 	//Use one operator and two oeprands 
@@ -636,17 +654,20 @@ bool make_new_branch(stack * ops, stack * operands)
 	
 	//Add this new command tothe operand stack
 	push(operands, new_command);
+	make_branch_count++;
 	return true;
 }
 //(a|(b|(c|d)))
 //Organizes it into proper command_trees
 command_t make_command(token_t * head)
 {
+	printf("Entered make_command \n");
 	stack_t operands = make_stack();
 	stack_t ops = make_stack();
 	token_t * current_tok = head;
 	command_t curr_cmd;
 	command_t prev_cmd = NULL;
+	int token_count = 0;
 	do 
 	{
 		//Check for redirect operators if there are not redirectors then make a new command  
@@ -667,61 +688,66 @@ command_t make_command(token_t * head)
 			case AND:
 				//Pretty sure you just push the thing onto the stack 
 				curr_cmd->type = AND_COMMAND;
-				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				while (!isEmpty(ops) && !higherPrecedence(ops, curr_cmd)) //if was replaced 
 				{
 					bool branch_success = make_new_branch(ops, operands);
 					if(!branch_success)
 						{
-							error(2,0, "Error making child branch");
-							return NULL;
+							error(2,0, "Error making child branch Line 699");
+							exit(1);
 						}
 				}
 				push(ops, curr_cmd);
+				printf("Pushing AND\n");
 				break;
 			case PIPELINE:
 				//Follows same behavior of the &&
 				curr_cmd->type = PIPE_COMMAND;
-				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				while (!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
 				{
 					bool branch_success = make_new_branch(ops, operands);
 					if(!branch_success)
 						{
-							error(2,0, "Error making child branch");
-							return NULL;
+							error(2,0, "Error making child branch Line 713");
+							exit(1);
 						}
 				}
 				push(ops, curr_cmd);
+				printf("Pushing PIPE\n");
 				break;
 			case OR:
 				//Follows same behavior as |
+				printf("encountered OR Command\n");
 				curr_cmd->type = OR_COMMAND;
-				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				while (!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
 				{
 					bool branch_success = make_new_branch(ops, operands);
 					if(!branch_success)
 						{
-							error(2,0, "Error making child branch");
-							return NULL;
+							error(2,0, "Error making child branch Line 727");
+							exit(1);
 						}
 				}
+				
 				push(ops,curr_cmd);
+				printf("Pushing OR\n");
 				break;
 			case SEMICOLON:
 				curr_cmd->type = SEQUENCE_COMMAND;
-				if(!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
+				while (!isEmpty(ops) && !higherPrecedence(ops, curr_cmd))
 				{
 					bool branch_success = make_new_branch(ops, operands);
 					if(!branch_success)
 						{
-							error(2,0, "Error making child branch");
-							return NULL;
+							error(2,0, "Error making child branch Line 740");
+							exit(1);
 						}
 				}
 				push(ops, curr_cmd);
 				break;
 			case WORD:
 				curr_cmd->type = SIMPLE_COMMAND;
-				
+				printf("encountered word token\n");
 				size_t num_ofWords = 1;
 				token_t * it = current_tok;
 				//curr_cmd->u.word[0] = &(current_tok->value); 
@@ -730,46 +756,65 @@ command_t make_command(token_t * head)
 				{
 					num_ofWords++;
 					it = it->next;
-					printf("Line 632");
+					printf("Line 632 \n");
 				}
-				
+				printf("%i words were detected\n", num_ofWords);
 				//ALLOCATE ENOUGH SPACE FOR ALL THE WORDS 
-				curr_cmd->u.word = checked_malloc(num_ofWords * sizeof(char*));
+				curr_cmd->u.word = checked_malloc(num_ofWords+1 * sizeof(char*));
 				
 				//Iterate through tokens again and assign words to curr_cmd->u.word
 				it = current_tok;
-				int u_index = 0;
-				while (it->next != NULL && it->next->trait == WORD)
+				
+				size_t u_index =0;
+				curr_cmd->u.word[0] = current_tok->value;
+				printf("word/letter is:%s\n", curr_cmd->u.word[0]);
+				for (u_index = 1; u_index<num_ofWords; u_index++)
 				{
-					curr_cmd->u.word[u_index] = it->value;
-					u_index++;
-					it = it->next;
-					printf("line 681");
+					printf("Entered case of many words\n");
+					token_count++;
+					current_tok = current_tok->next;
+					curr_cmd->u.word[u_index] = current_tok->value;
 				}
-				push(ops, curr_cmd);
+				if(!isEmpty(operands))
+				{
+					printf("Getting the previous top of operand stack first:%s\n",peek(operands)->u.word[0]);
+				}
+				push(operands, curr_cmd);//KEEP THIS ORIGINAL CODE
+				/*
+				//DEBUGGING CODE
+				printf("accessing value of operand stack:%s\n" , peek(operands)->u.word[0]);
+				printf("Pushing WORD\n");
+				printf("Now checking if push ruined the stuff prexisting stuff\n");
+				pop(operands);
+				if(!isEmpty(operands))
+					printf("The previous element is now:%s which should be different from %s\n", peek(operands)->u.word[0], curr_cmd->u.word[0]);
+				push(operands, curr_cmd);
+				
+				//END OF DEBUGGING CODE
+				*/
 				break;
 			case LEFT:
 				if ((prev_cmd==NULL) || (prev_cmd->type != SIMPLE_COMMAND && prev_cmd->type != SUBSHELL_COMMAND))
 					{
 						error(2, 0 ,"Syntax error no input to redirect or non simple/subshell command was there");
-						return NULL;
+						exit(1);
 					}
 				if (current_tok->trait != WORD)
 				{
 					error(2, 0, "Redirect MUST be followed by a WORD");
-					return NULL;
+					exit(1);
 				}
 				
 				//CHECK IF PREV_CMD HAS NO OUTPUT OR INPUT or can you?
 				if (prev_cmd->input != NULL)
 				{
 					error(2, 0, "Previous command cannot have an input.");
-					return NULL;
+					exit(1);
 				}
 				if (prev_cmd->output != NULL)
 				{
 					error(2, 0, "Previous command cannot have an output.");
-					return NULL;
+					exit(1);
 				}
 				prev_cmd->input = current_tok->value;				
 				break;
@@ -777,18 +822,18 @@ command_t make_command(token_t * head)
 				if ((prev_cmd==NULL) || (prev_cmd->type != SIMPLE_COMMAND && prev_cmd->type != SUBSHELL_COMMAND))
 					{
 						error(2, 0 ,"Syntax error no input to redirect");
-						return NULL;
+						exit(1);
 					}
 				if (current_tok->trait !=WORD)
 				{
 					error(2, 0, "Redirect MUST be followed by a WORD");
-					return NULL;
+					exit(1);
 				}
 				//CHECK IF PREV_CMD HAS NO OUTPUT or CAN YOU HAVE REDIRECTS UPON REDIRECTS
 				if (prev_cmd->output != NULL)
 				{
 					error(2, 0, "Previous command already has some output.");
-					return NULL;
+					exit(1);
 				}
 				prev_cmd->output = current_tok->value;
 				break;
@@ -796,22 +841,31 @@ command_t make_command(token_t * head)
 				break;
 		}
 		prev_cmd = curr_cmd;
-		current_tok = current_tok->next;
-		printf("Line 698");
-	}
-	while(current_tok != NULL && current_tok->next != NULL);
+		//current_tok = current_tok->next;
+		token_count++;
+		printf("Line 698 \n");
+	} while(current_tok != NULL && (current_tok=current_tok->next) != NULL);
 	
+	
+	printf("Iterated through %i tokens\n", token_count);
 	//WE NEED TO EMPTY THE THE STACK AND COMPLETE THE TREE WITH WHATS LEFT 
 	bool branch_success = true;
 	command_t root;
+	if (stack_size(operands) ==1)
+	{
+		root = pop(operands);
+		return root;
+	}
+	printf("size of operator stack is %i \n", stack_size(ops));
+	printf("size of operand stack is %i \n", stack_size(operands));
 	while(stack_size(ops)>0)
 	{
-		printf("Line 707");
+		printf("Line 707 \n");
 		branch_success = make_new_branch(ops, operands);
 		if (!branch_success)
 		{
-			error(2,0,"Error making child branch");
-			return NULL;
+			error(2,0,"Error making child branch Line 837");
+			exit(1);
 		}
 		
 	}
@@ -819,10 +873,10 @@ command_t make_command(token_t * head)
 	if(stack_size(operands) != 1)
 	{
 		error(2, 0, "Unable to make a complete command tree root is missing");
-		return NULL;
+		exit(1);
 	}
-	
-	root = pop(operands);
+	if(stack_size(operands) == 1)
+		root = pop(operands);
 	
 	//Do we need deconstructors? for the two stacks 
 	return root; //placeholder
@@ -834,8 +888,24 @@ command_t
 read_command_stream (command_stream_t s)
 {
   /* FIXME: Replace this with your implementation too.  */
+  //command_stream_t read = s;
+  if(s == NULL || s->comm == NULL)
+	return NULL;
   
-  //Most likely to have the processing of the command tree?
-  error (1, 0, "command reading not yet implemented");
-  return 0;
+  command_t target = s->comm;
+	
+	if (s->next!= NULL)
+	{
+		//s->comm = s->next->comm;
+		//s->next = s->next->next;
+		command_stream_t next = s->next;
+		s->comm = s->next->comm;
+		s->next = s->next->next;
+		*s = *s->next;
+		free(next);
+	}
+	else
+		s->comm = NULL;
+	
+	return target;	
 }
