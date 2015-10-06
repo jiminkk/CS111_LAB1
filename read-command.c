@@ -49,10 +49,7 @@ struct node {
 	node_t next;
 };
 
-struct stack{
-	node_t top;
-	int num_cmds;
-};
+
 
 struct linked_tokens
 {
@@ -74,19 +71,6 @@ struct token
 
 
 
-stack_t make_stack(){
-	printf("Making a stack\n");
-	stack_t tmp = checked_malloc(sizeof(struct stack));
-	tmp->top = NULL;
-	tmp->num_cmds = 0;
-	return tmp;
-}
-
-//dunno about this one
-void free_stack(stack_t this_stack){
-	free(this_stack);
-	return;
-}
 
 token_t * make_token(enum token_trait type, char *value)
 { 
@@ -147,7 +131,7 @@ struct command_stream{
 };
 
 //STACK FUNCTIONALITY IMPLEMENTED HERE
-void push(stack_t p, command_t add)
+/*void push(stack_t p, command_t add)
 { 
   //stack_t item = (stack_t) p;
   p->num_cmds++;
@@ -162,7 +146,83 @@ void push(stack_t p, command_t add)
   }
   next_node->next = p->top;
   p->top = next_node;
-} 
+} */
+/*
+struct stack{
+	node_t top;
+	int num_cmds;
+};
+
+stack_t make_stack(){
+	printf("Making a stack\n");
+	stack_t tmp = checked_malloc(sizeof(struct stack));
+	tmp->top = NULL;
+	tmp->num_cmds = 0;
+	return tmp;
+}
+
+//dunno about this one
+void free_stack(stack_t this_stack){
+	free(this_stack);
+	return;
+}
+
+void push(stack_t p, command_t add)
+{
+	if(add->type == SIMPLE_COMMAND)
+	{
+		printf("\n\n");
+		printf("Entering PUSH\n");
+		printf("Pushing %s to stack\n", add->u.word[0]);
+	}
+  p->num_cmds++;
+
+  //if no head node
+  if(p->top==NULL)
+  {
+	if(add->type==SIMPLE_COMMAND)
+		printf("pushing stack first time\n");
+    node_t head_node = (node_t)checked_malloc(sizeof(struct node));
+    head_node->val = add;
+    head_node->next = NULL;
+	p->top=head_node;
+	printf("Exiting push\n\n");
+    return;
+  }
+  //else
+  node_t prev_top = p->top;
+  if(prev_top->val->type==SIMPLE_COMMAND && p->num_cmds >1)
+  {
+	printf("Value of prev top:%s\n", prev_top->val->u.word[0]);
+  }
+  
+  node_t next_node = (node_t)checked_malloc(sizeof(node));
+  next_node->next = p->top;
+  next_node->val = add;
+  p->top = next_node;
+  if(prev_top->val->type==SIMPLE_COMMAND && p->num_cmds >1)
+  {
+	printf("Value of prev top AFTER PUSH:%s\n", prev_top->val->u.word[0]);
+	printf("This value should differ from %s\n\n\n", p->top->val->u.word[0]);
+  }
+  return;
+}
+
+
+void print_stack(stack_t p)
+{
+	printf("\n\nPrinting Stack\n");
+	int while_count = 0;
+	printf("Size of stack is:%i\n", p->num_cmds);
+	while(p->top!=NULL && p->top->next != NULL && while_count <10)
+	{
+		printf("The current letter is %s\n",p->top->val->u.word[0]);
+		
+		p->top = p->top->next;
+		while_count++;
+	}
+}
+//TURNS OUT PUSH WORKS CORRECTLY
 
 command_t pop(stack_t p)
 {
@@ -188,7 +248,65 @@ command_t peek(stack_t p)
  {
   return p->top->val;
  }
+ */
  
+ struct stack 
+ {
+	int num_cmds;
+	int cmd_index;
+	command_t cmds[8];
+ };
+ 
+stack_t make_stack()
+ {
+	stack_t p = checked_malloc(sizeof(struct stack));
+	p->num_cmds = 0;
+	p->cmd_index = 0;
+	int i =0;
+	for (i; i<8; i++)
+		p->cmds[i] = NULL;
+	return p;
+ }
+ 
+ command_t peek(stack_t p)
+ {
+	
+	return p->cmds[p->cmd_index - 1];
+ }
+ 
+ void push(stack_t p, command_t add)
+ {
+	printf("ENTERTING PUSH\n");
+	p->num_cmds++;
+	p->cmds[p->cmd_index] = add;
+	p->cmd_index++;
+	if(add->type==SIMPLE_COMMAND)
+		printf("Value of pushed word is:%s", add->u.word[0]);
+ }
+ 
+ command_t pop(stack_t p)
+ {
+	p->cmd_index--;
+	command_t target = p->cmds[p->cmd_index];
+	p->num_cmds--;
+	
+	return target;
+ }
+ 
+ void print_stack(stack_t p)
+ {
+	int i = p->cmd_index-1;
+	while (i >=0)
+	{
+		printf("%d value is %s\n", i, p->cmds[i]->u.word[0]);
+		i--;
+	}
+ }
+ 
+ int stack_size(stack_t p)
+ {
+	return p->num_cmds;
+ }
  //Current Operator must be higher than top of stack
  bool higherPrecedence(void * p, command_t current)
 {
@@ -373,7 +491,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
   while (index < input_size)
   {
     ch = *p_input;
-	printf("line 317 \n");
+	//printf("line 317 \n");
     //In the case of a parenthesis AKA SUBSHELL
     if(ch=='(')
     {
@@ -595,7 +713,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 		p_input++;
 		index++;
 		ch = *p_input;
-		printf("Line 486 \n");
+		//printf("Line 486 \n");
 		
 	   }
       while(index < input_size && isValidWord(ch) && ch != EOF);
@@ -847,11 +965,12 @@ command_t make_command(token_t * head)
 		prev_cmd = curr_cmd;
 		//current_tok = current_tok->next;
 		token_count++;
-		printf("Line 698 \n");
+		//printf("Line 698 \n");
 	} while(current_tok != NULL && (current_tok=current_tok->next) != NULL);
 	
 	
 	printf("Iterated through %i tokens\n", token_count);
+	print_stack(operands);
 	//WE NEED TO EMPTY THE THE STACK AND COMPLETE THE TREE WITH WHATS LEFT 
 	bool branch_success = true;
 	command_t root;
