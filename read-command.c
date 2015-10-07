@@ -274,9 +274,7 @@ make_command_stream (int (*get_next_byte) (void *),
   int i;
   //OUTPUT NOW WORKS
   linked_tokens_t * start = make_linked_tokens(input, count_char);
-  if(start->head->next->next == NULL)
-	printf("line 278, doesn't have \n");
-  printf("Concluded make_linked_tokens \n");
+  
   
   if (start == NULL)
   {
@@ -291,8 +289,10 @@ make_command_stream (int (*get_next_byte) (void *),
 	command_stream_t prev_stream = new_command_stream();
 	
 	//printf("\n\nEntered Branch Making portion of make_command_stream \n");
-	while(token_stream != NULL) //&& token_stream->next != NULL)
+	while(token_stream != NULL && token_stream->next != NULL)
 	{
+		if (token_stream->head->next == NULL)
+			printf("Token head next was never made\n");
 		token_t * current_tok = token_stream->head->next;
 		command_t current_cmd = make_command(current_tok);
 		curr_stream->comm = current_cmd;
@@ -562,13 +562,21 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 	  
       //word = checked_realloc(word, (word_index+2) * sizeof(char));
 	  word[word_index+1] = '\0';
-	  printf("Final word is %s \n", word);
       token_t * tok = make_token(WORD, word);
+	  /*if(current_token == current_linked_tokens->head)
+	  {
+		printf("Still at head token");
+		current_linked_tokens->head->next = tok;
+		current_token = tok;
+	  }
+	  else{*/
       current_token->next = tok;
       current_token = current_token->next;
+	  //}
     }
 	//FOR ANY OTHER CHARACTER THAT IS UNRECOGNIZED
     else
+	
     {
 	  printf("Character not recognized is: %i", *p_input);
       error(2, 0, "Unrecognized characters.");
@@ -601,11 +609,12 @@ bool make_new_branch(stack * ops, stack * operands)
 //Organizes it into proper command_trees
 command_t make_command(token_t * head)
 {
+	if (head == NULL)
+		printf("Passed in emtpy token!\n");
 	
-	//printf("Entered make_command \n");
 	stack_t operands = make_stack();
 	stack_t ops = make_stack();
-	token_t * current_tok = head;
+	token_t * current_tok = head; //does it actually iterate up by one?
 	command_t curr_cmd = checked_malloc(sizeof(struct command));
 	command_t prev_cmd = checked_malloc(sizeof(struct command));
 	curr_cmd->input = NULL;
@@ -613,11 +622,10 @@ command_t make_command(token_t * head)
 	prev_cmd->input = NULL;
 	prev_cmd->output = NULL;
 	int token_count = 0;
-	printf("make_command\n");
-	if(current_tok->trait != NULL)
-		printf("current_tok has traits\n");
+	
 	do 
 	{
+		//printf("do while line 619\n");
 		//Check for redirect operators if there are not redirectors then make a new command  
 		if(current_tok->trait != LEFT && current_tok->trait != RIGHT)
 		{
@@ -837,7 +845,7 @@ read_command_stream (command_stream_t s)
   
   command_t target = s->comm;
 	
-	if (s!=NULL && s->next!= NULL)
+	if (s->next!= NULL)
 	{
 		command_stream_t next = s->next;
 		s->comm = s->next->comm;
