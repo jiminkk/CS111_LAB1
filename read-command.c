@@ -333,7 +333,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
   int index =0;
   char ch = *p_input;
   int parenCount = 0; //Used to count for nested parenthesis and detected incorrect numbers of parenthesis 
-  // int token_line = 1;   //For debugging purposes. token_line = line in input
+  int token_line = 1;   //For debugging purposes. token_line = line in input
 
   while (index < input_size)
   {
@@ -343,6 +343,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
     if(ch=='(')
     {
       parenCount++;   //should be parenCount == 1 here.
+	  int subshell_line = token_line;
       //let's allocate memory for the subshell (more than one char)
       size_t count_subshell=0;
       size_t size_subshell = 128;
@@ -369,6 +370,8 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
         {
           while(p_input[1]==' ' || p_input[1]=='\n' || p_input[1]=='\t') //WHITESPACE && TAB CASE
           {
+			if(p_input[1]=='\n')
+				token_line++;
             p_input++;
             index++;
 			//printf("line 317 \n");
@@ -376,6 +379,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
 
           //newlines are special -- it can be substituted for semicolon.
           *p_input = ';';
+		  token_line++;
         }
         else if(*p_input == '(')
           parenCount++;
@@ -412,7 +416,7 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
     //In the case of closed parenthesis 
     else if(ch==')')
     {
-      error(2, 0, "closed parenthesis found without leading parenthesis");
+      error(2, 0, "Line %d: closed parenthesis found without leading parenthesis", token_line);
       return NULL;
     }
 
@@ -424,7 +428,8 @@ linked_tokens_t* make_linked_tokens(char* p_input, int input_size)
       index++;
       if (*p_input == '&')
       {
-        token_t * tok = make_token(AND, NULL);
+        token_t * tok = make_token(AND, NULL, token_line);
+		//STARTHERE
         current_token->next = tok;
         current_token = current_token->next;
 		p_input++;
