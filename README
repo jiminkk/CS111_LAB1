@@ -1,4 +1,20 @@
 This is a skeleton for CS 111 Lab 1.
 
-Replace this README file with notes on your implementation.
-Mentions any special features or limitations.
+Jason Jiang 604409327
+Ji Min Kim 804255847
+
+We implemented the program using tokens in order to keep track of each command character in a more organized fashion. 
+
+An overview of our code is as follows
+
+Read in the input from the console and parse through it intially to remove all comments from the input
+
+Next tokenize the input string in order to make a linked list of tokens (linked tokens) that all have a trait (eg AND, WORD) 
+which allows them to be easily processed later in the code 
+
+Once the linked tokens are made, we iterate through those in order to make commands using an algorithm provided by the TA.
+
+With the commands successfuly made we then process those into a tree. We link these trees together to make a command stream
+
+With a command stream made, we then iterate through the command stream to print out the contents of the tree.
+
