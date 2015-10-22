@@ -140,7 +140,7 @@ execute_command (command_t c, int time_travel)
         ///NOTE There may be a logic error depending on order of closing and executing commands
         
         //Check for error with duplication
-        if (dup2(mypipe[write], write);
+        if (dup2(mypipe[write], write))
         {
           execute_command(c->u.command[0], time_travel);   //execute_switch(c->u.command[0]);
           c->status = c->u.command[0]->status;
@@ -160,9 +160,9 @@ execute_command (command_t c, int time_travel)
         
         close(mypipe[write]);
         
-        if (dup2(mypipe[read],read)
+        if (dup2(mypipe[read],read))
         { 
-          execute_command(c->command[1], time_travel);
+          execute_command(c->u.command[1], time_travel);
           c->status = c->u.command[1]->status;
           close(mypipe[read]);
           exit(0);
@@ -175,7 +175,7 @@ execute_command (command_t c, int time_travel)
       break;
       
     case SUBSHELL_COMMAND:
-      execute_command(c->ucommand[0], time_travel);
+      execute_command(c->u.command[0], time_travel);
       c->status = c->u.command[1]->status;
       break;
     default:

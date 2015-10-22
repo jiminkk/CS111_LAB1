@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# UCLA CS 111 Lab 1 - Same script file as test-p-ok.sh except the commands
+# UCLA CS 111 Lab 1b - Same script file as test-p-ok.sh except the commands
 
 tmp=$0-$$.tmp
 mkdir "$tmp" || exit
@@ -33,7 +33,7 @@ isalmost
 done
 EOF
 
-../timetrash -p test.sh >test.out 2>test.err || exit
+../timetrash test.sh >test.out 2>test.err || exit
 
 diff -u test.exp test.out || exit
 test ! -s test.err || {
