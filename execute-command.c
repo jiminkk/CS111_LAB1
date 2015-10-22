@@ -4,6 +4,10 @@
 #include "command-internals.h"
 #include <unistd.h>
 #include <error.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdlib.h>
 
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
@@ -21,7 +25,7 @@ execute_command (command_t c, int time_travel)
   int write = 1;
   switch (c->type)
   {
-    int fd[2];
+    int mypipe[2];
     pid_t child;
     case SIMPLE_COMMAND:
       //base case for all recursion
@@ -102,39 +106,36 @@ execute_command (command_t c, int time_travel)
       break;
 
     case AND_COMMAND:
-      execute_command(c->command[0], time_travel);
-      c->status = c->command[0]->status;
+      execute_command(c->u.command[0], time_travel);
+      c->status = c->u.command[0]->status;
       
       //Given that the first command has succeeded exeucte the second one
       if (!c->status)
       {
-        execute_command(c->command[1], time_travel);
-        c->status = c->command[1]->status;
+        execute_command(c->u.command[1], time_travel);
+        c->status = c->u.command[1]->status;
       }
       break;
 
     case OR_COMMAND:
-      execute_command(c->command[0], time_travel);
-      c->status = c->command[0]->status;
+      execute_command(c->u.command[0], time_travel);
+      c->status = c->u.command[0]->status;
       
       //execute only if failure occurs on the first command
       if (c->status)
       {
-        execute_command(c->command[1], time_travel);
-        c->status = c->command[1]->status;
+        execute_command(c->u.command[1], time_travel);
+        c->status = c->u.command[1]->status;
       }
       break;
 
     case PIPE_COMMAND:
-      int child_status;
-      pid_t first_pid, second_pid, return_pid;
-      int mypipe[2];
       pipe(mypipe);
-      first_pid = fork();
+      child = fork();
 
-      if (first_pid == 0) //child process
+      if (child == 0) //child process
       {
-        close(mypipe[read];
+        close(mypipe[read]);
 
         ///NOTE There may be a logic error depending on order of closing and executing commands
         
@@ -152,9 +153,10 @@ execute_command (command_t c, int time_travel)
         }
       }
 
-      else if (first_pid > 0) //parent process
+      else if (child > 0) //parent process
       {
-        waitpid(first_pid, &child_status, 0);
+		int child_status;
+        waitpid(child, &child_status, 0);
         
         close(mypipe[write]);
         
@@ -178,6 +180,7 @@ execute_command (command_t c, int time_travel)
       break;
     default:
       error(3,0,"What command are you using? its not valid");
+	  break;
   }
   /* FIXME: Replace this with your implementation.  You may need to
      add auxiliary functions and otherwise modify the source code.
@@ -187,4 +190,5 @@ execute_command (command_t c, int time_travel)
    
    //Maybe put the psuedo code here for the operator it parses stuff?
   error (1, 0, "command execution not yet implemented");
+  return ;
 }
