@@ -10,15 +10,15 @@ cd "$tmp" || exit
 
 cat >test.sh <<'EOF'
 echo a
-echo b | cat
+(echo b) && false || echo c
+echo d | cat
 
-(echo c) && false || echo d
-echo odysseus won the war > ody.txt
-echo odysseus is coming home > ody.txt
-cat ody.txt #arg = file
-cat < ody.txt #file is from stdin
+echo odysseus won the war > f1.txt
+cat f1.txt # filename is argument
+echo odysseus is coming home > f1.txt
+cat < f1.txt #file is from stdin
 
-echo thislab ; echo isalmost | cat ; echo done
+echo thislab | cat ; echo isalmost; echo done
 EOF
 
 cat >test.exp <<'EOF'

@@ -1,20 +1,10 @@
-true
+echo echo1
+(echo echo2) && false || echo echo3
+echo echo4 | cat
 
-g++ -c foo.c
+echo writing to file > f1.txt
+cat f1.txt # filename as argument
+echo writing to file again > f1.txt
+cat < f1.txt # file from stdin
 
-: : :
-
-cat < /etc/passwd | tr a-z A-Z | sort -u || echo sort failed!
-
-a b<c > d
-
-cat < /etc/passwd | tr a-z A-Z | sort -u > out || echo sort failed!
-
-a&&b||
- c &&
-  d | e && f|
-
-g<h
-
-# This is a weird example: nobody would ever want to run this.
-a<b>c|d<e>f|g<h>i
+echo echo5 | cat ; echo echo6; echo echo7
