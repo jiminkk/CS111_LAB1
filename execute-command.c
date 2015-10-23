@@ -40,7 +40,7 @@ execute_command (command_t c, int time_travel)
           int input_file;
 
           //do we need more parameters here?
-          if((input_file = open(c->input, O_RDONLY)) == -1)
+          if((input_file = open(c->input, O_RDONLY), 0666) == -1)
             error(3, 0, "Could not open input file");
           if(dup2(input_file, read) == -1)
             error(3, 0, "Read file descriptor for input redirect not found");
@@ -130,7 +130,9 @@ execute_command (command_t c, int time_travel)
       break;
 
     case PIPE_COMMAND:
-      pipe(mypipe);
+      //pipe(mypipe);
+    if (pipe(mypipe) == -1)
+    error(3, 0, "Cannot create pipe.");
       child = fork();
 
       if (child == 0) //child process
@@ -140,7 +142,7 @@ execute_command (command_t c, int time_travel)
         ///NOTE There may be a logic error depending on order of closing and executing commands
         
         //Check for error with duplication
-        if (dup2(mypipe[write], write))
+        if (dup2(mypipe[write], write)!=-1)
         {
           execute_command(c->u.command[0], time_travel);   //execute_switch(c->u.command[0]);
           c->status = c->u.command[0]->status;
@@ -155,32 +157,32 @@ execute_command (command_t c, int time_travel)
 
       else if (child > 0) //parent process
       {
-		int child_status;
+    int child_status;
         waitpid(child, &child_status, 0);
         
         close(mypipe[write]);
         
-        if (dup2(mypipe[read],read))
+        if (dup2(mypipe[read],read) !=-1)
         { 
           execute_command(c->u.command[1], time_travel);
           c->status = c->u.command[1]->status;
           close(mypipe[read]);
-          exit(0);
+          //exit(0);
         }
         else
-          error(3, 0, "ailure to duplicate read file descriptor");
+          error(3, 0, "failure to read from file line 171");
       }
       else
           error(3, 0, "Failed to create child process");
       break;
       
     case SUBSHELL_COMMAND:
-      execute_command(c->u.command[0], time_travel);
-      c->status = c->u.command[1]->status;
+      execute_command(c->u.subshell_command, time_travel);
+      c->status = c->u.subshell_command->status;
       break;
     default:
       error(3,0,"What command are you using? its not valid");
-	  break;
+    break;
   }
   /* FIXME: Replace this with your implementation.  You may need to
      add auxiliary functions and otherwise modify the source code.
@@ -189,6 +191,5 @@ execute_command (command_t c, int time_travel)
    //Assuming we need to run a switch statement to run each command 
    
    //Maybe put the psuedo code here for the operator it parses stuff?
-  error (1, 0, "command execution not yet implemented");
   return ;
 }
