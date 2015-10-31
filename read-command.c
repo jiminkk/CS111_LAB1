@@ -32,7 +32,7 @@ enum token_trait
 
 typedef struct token token_t;
 
-typedef struct linked_list * linked_list_t;
+typedef struct linked_files linked_files;
 typedef struct linked_tokens linked_tokens_t;
 //typedef struct linked_tokens linked_tokens;
 typedef struct stack * stack_t;
@@ -57,8 +57,9 @@ struct linked_tokens
   linked_tokens_t* next;
 };
 
-struct linked_list{
-  node_t head;
+struct linked_files{
+   linked_files * next;
+   char* file;
 };
 
 //This is specifically made for a linked list of tokens 
@@ -126,7 +127,7 @@ linked_tokens_t* makeLinkedTokens(){
 struct command_stream{
   command_stream_t next; //pointer to next command stream
   command_t comm; // value read this value from read command 
-  
+  //get depends here
 };
 
 
@@ -922,3 +923,48 @@ read_command_stream (command_stream_t s)
   
   return target;  
 }
+
+// get dependency file
+// inputs, outputs
+linked_files * get_linked_files(command_t stream)
+{
+	linked_files * list;
+	
+	switch(stream->type)
+	{
+		case SUBSHELL_COMMAND:
+			get_linked_files(stream->u.subshell_command);
+		case SIMPLE_COMMAND:
+			if (stream->input != NULL)
+			{
+				if (list == NULL)
+				{
+					
+				}
+			}
+			
+			if (stream->output != NULL)
+			{
+			}
+			
+		case AND_COMMAND:
+		case OR_COMMAND:
+		case PIPE_COMMAND:
+		case SEQUENCE_COMMAND:
+		default:
+	}
+	
+	
+	return list;
+}
+
+
+
+
+
+
+
+
+
+
+
