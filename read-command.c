@@ -929,28 +929,45 @@ read_command_stream (command_stream_t s)
 linked_files * get_linked_files(command_t stream)
 {
 	linked_files * list;
+	linked_files * temp;
+	linked_files * subshell_list;
 	
 	switch(stream->type)
 	{
 		case SUBSHELL_COMMAND:
-			get_linked_files(stream->u.subshell_command);
+			subshell_list = get_linked_files(stream->u.subshell_command);
 		case SIMPLE_COMMAND:
 			if (stream->input != NULL)
 			{
-				if (list == NULL)
-				{
-					
-				}
+				temp = checked_malloc(sizeof(linked_files));
+				temp->next = NULL;
+				temp->file = stream->input;
+				list = temp;
 			}
 			
 			if (stream->output != NULL)
 			{
+				temp = checked_malloc(sizeof(linked_files));
+				temp->next = NULL;
+				temp->file = stream->output;
+				if (list == NULL)
+					list = temp;
+				else
+					list->next = temp;
+			}
+			
+			if(subshell_list != NULL)
+			{
+				temp = list;
+				list = subshell_list;
+				list->next = temp;
 			}
 			
 		case AND_COMMAND:
 		case OR_COMMAND:
 		case PIPE_COMMAND:
 		case SEQUENCE_COMMAND:
+			
 		default:
 	}
 	
