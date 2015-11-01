@@ -31,8 +31,6 @@ enum token_trait
 };
 
 typedef struct token token_t;
-
-typedef struct linked_files linked_files;
 typedef struct linked_tokens linked_tokens_t;
 //typedef struct linked_tokens linked_tokens;
 typedef struct stack * stack_t;
@@ -49,17 +47,12 @@ struct node {
   node_t next;
 };
 
-
+// linked_files is located in command.h
 
 struct linked_tokens
 {
   token_t* head;
   linked_tokens_t* next;
-};
-
-struct linked_files{
-   linked_files * next;
-   char* file;
 };
 
 //This is specifically made for a linked list of tokens 
@@ -127,7 +120,7 @@ linked_tokens_t* makeLinkedTokens(){
 struct command_stream{
   command_stream_t next; //pointer to next command stream
   command_t comm; // value read this value from read command 
-  //get depends here
+  linked_files * depends; //get depends here
 };
 
 
@@ -338,6 +331,7 @@ make_command_stream (int (*get_next_byte) (void *),
     
     curr_stream = checked_malloc(sizeof(struct command_stream));
     curr_stream->comm = current_cmd;
+	curr_stream->depends = get_linked_files(current_cmd);
     
     if (!stream_head)
     {
@@ -1010,6 +1004,7 @@ int check_dependency(linked_files * file_1, linked_files * file_2)
 			f2 = file_2;
 			while(f2 != NULL)
 			{
+				printf("File 1: %s \n File 2: %s", f1->file, f2->file);
 				if(strcmp(f1->file, f2->file)==0)
 					return 1;
 				f2 = f2->next;

@@ -3,11 +3,17 @@
 typedef struct command *
 command_t;
 typedef struct command_stream *command_stream_t;
+typedef struct linked_files linked_files;
+
+struct linked_files{
+   linked_files * next;
+   char* file;
+};
 
 //LINKED LIST AND STACK IMPLEMENTATION HERE
 //LINKED LIST WILL BE USED IN THE IMPLEMENTATION 
-struct linked_list;
-struct stack;
+//struct linked_list;
+//struct stack;
 
 /*
 //Put command into the stack
@@ -51,3 +57,7 @@ void execute_command (command_t, int);
 /* Return the exit status of a command, which must have previously been executed.
    Wait for the command, if it is not already finished.  */
 int command_status (command_t);
+
+linked_files * get_linked_files(command_t stream);
+
+int check_dependency(linked_files * file_1, linked_files * file_2);
