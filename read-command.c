@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h> //allows support of bool type
 #include <ctype.h> //used for isalphanum()
-#include <string.h> // required for strchr() 
+#include <string.h> // required for strchr(), strcmp()
 #include <stdio.h> // required for EOF
 
 /* FIXME: You may need to add #include directives, macro definitions,
@@ -925,9 +925,10 @@ read_command_stream (command_stream_t s)
 }
 
 // get dependency file
-// inputs, outputs
+// check for inputs, outputs
 linked_files * get_linked_files(command_t stream)
 {
+	// should we initialize these as NULL
 	linked_files * list;
 	linked_files * temp;
 	linked_files * subshell_list;
@@ -950,10 +951,13 @@ linked_files * get_linked_files(command_t stream)
 				temp = checked_malloc(sizeof(linked_files));
 				temp->next = NULL;
 				temp->file = stream->output;
+				list = temp;
+				/*
 				if (list == NULL)
 					list = temp;
 				else
 					list->next = temp;
+					*/ //do we need this part 
 			}
 			
 			if(subshell_list != NULL)
@@ -962,20 +966,59 @@ linked_files * get_linked_files(command_t stream)
 				list = subshell_list;
 				list->next = temp;
 			}
+			break;
 			
 		case AND_COMMAND:
 		case OR_COMMAND:
 		case PIPE_COMMAND:
 		case SEQUENCE_COMMAND:
+			//first command
+			list = get_linked_files(stream->u.command[0]);
+			if(list != NULL)
+			{
+				temp = list;
+				while(temp!=NULL){
+					temp = temp->next;
+				}
+				temp = get_linked_files(stream->u.command[1]);
+				list->next = temp;
+			}
+			else
+			{
+				list = get_linked_files(stream->u.command[1]);
+			}
 			
+			break;
 		default:
+			error(3, 0, "command type not valid");
+			break;
 	}
-	
-	
 	return list;
 }
 
-
+// compare c strings of file names when looping through linked_files
+int check_dependency(linked_files * file_1, linked_files * file_2)
+{
+	if(file_1 == NULL || file_2 == NULL)
+		return 0;
+	else
+	{
+		linked_files * f1 = file_1;
+		linked_files * f2 = NULL;
+		while(f1 != NULL)
+		{
+			f2 = file_2;
+			while(f2 != NULL)
+			{
+				if(strcmp(f1->file, f2->file)==0)
+					return 1;
+				f2 = f2->next;
+			}
+			f1 = f1->next;
+		}
+	}
+	return 0; //if not dependent
+}
 
 
 
