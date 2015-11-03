@@ -52,11 +52,18 @@ main (int argc, char **argv)
   command_stream_t command_stream =
     make_command_stream (get_next_byte, script_stream);
 
+	
+	
   command_t last_command = NULL;
   command_t command;
+  
   while ((command = read_command_stream (command_stream)))
     {
 		//printf("Stuck in main!");
+		if (time_travel)
+		{
+			printf("inside timetravel main");
+		}
       if (print_tree)
 	{
 	  printf ("# %d\n", command_number++);

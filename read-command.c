@@ -923,9 +923,9 @@ read_command_stream (command_stream_t s)
 linked_files * get_linked_files(command_t stream)
 {
 	// should we initialize these as NULL
-	linked_files * list;
-	linked_files * temp;
-	linked_files * subshell_list;
+	linked_files * list = NULL;
+	linked_files * temp = NULL;
+	linked_files * subshell_list = NULL;
 	
 	switch(stream->type)
 	{
