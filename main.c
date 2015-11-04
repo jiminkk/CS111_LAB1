@@ -20,7 +20,7 @@ static int get_next_byte (void *stream)
 	return getc (stream);
 }
 
-int execute_time_travel (command_stream_t stream);
+int execute_parallelism (command_stream_t stream);
 
 int main (int argc, char **argv)
 {

@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
@@ -24,10 +25,12 @@ execute_command (command_t c, int time_travel)
 {
   int read = 0;
   int write = 1;
+  int mypipe[2];
+  pid_t child;
+	
   switch (c->type)
   {
-    int mypipe[2];
-    pid_t child;
+    
     case SIMPLE_COMMAND:
       //base case for all recursion
       child = fork();
@@ -41,7 +44,8 @@ execute_command (command_t c, int time_travel)
           int input_file;
 
           //do we need more parameters here?
-          if((input_file = open(c->input, O_RDONLY), 0666) == -1)
+		  input_file = open(c->input, O_RDONLY|O_CREAT, S_IRUSR|S_IRGRP|S_IROTH);
+          if(input_file == -1)
             error(3, 0, "Could not open input file");
           if(dup2(input_file, read) == -1)
             error(3, 0, "Read file descriptor for input redirect not found");
@@ -52,9 +56,10 @@ execute_command (command_t c, int time_travel)
         if(c->output) // >
         {
           int output_file;
-
+			printf("output character: %d\n", *(c->output));
+			output_file = open(c->output, O_WRONLY|O_CREAT, S_IWUSR|S_IWGRP|S_IWOTH);
           //do we need more parameters here?
-          if((output_file = open(c->output, O_WRONLY|O_CREAT|O_TRUNC)) == -1)
+          if(output_file == -1)
             error(3, 0, "Could not write to file");
           if(dup2(output_file, write) == -1)
             error(3, 0, "Write file descriptor for output redirect not found");
@@ -79,7 +84,7 @@ execute_command (command_t c, int time_travel)
     case SEQUENCE_COMMAND:
       //parallelized
       //should we have to check for dependencies for lab 1b?
-      if(time_travel)
+      if(time_travel && !(check_dependency(get_linked_files(c->u.command[0]), get_linked_files(c->u.command[1]))))
       {
         child = fork();
         //newly created child process
@@ -133,8 +138,8 @@ execute_command (command_t c, int time_travel)
     case PIPE_COMMAND:
       //pipe(mypipe);
     if (pipe(mypipe) == -1)
-    error(3, 0, "Cannot create pipe.");
-      child = fork();
+		error(3, 0, "Cannot create pipe.");
+		child = fork();
 
       if (child == 0) //child process
       {
@@ -197,103 +202,106 @@ execute_command (command_t c, int time_travel)
 
 int execute_parallelism(command_stream_t command_stream)
 {
-	command_stream_t queue = NULL;
-	command_stream_t queue_curr = NULL;
-	command_stream_t prev = NULL;
-	command_stream_t curr = command_stream;
-	int runnable = 0;
-	while (curr != NULL)
+	while(command_stream !=NULL)
 	{
-		if (queue == NULL)
+		command_stream_t queue = NULL;
+		command_stream_t queue_curr = NULL;
+		command_stream_t prev = NULL;
+		command_stream_t curr = command_stream;
+		int runnable = 0;
+		while (curr != NULL)
 		{
-			queue = curr;
-			queue_curr = curr;
-			command_stream = curr->next;
-			curr = curr->next;
-			runnable = 1;
-		}
-		else 
-		{
-			int dependents = 0;
-			command_stream_t temp_stream = queue;
-			while (temp_stream != NULL)
+			if (queue == NULL)
 			{
-				if (check_dependency(curr->depends, temp_stream->depends))
-				{
-					dependents = 1;
-					break;
-				}
-				temp_stream = temp_stream->next;
+				queue = curr;
+				queue_curr = curr;
+				command_stream = curr->next;
+				curr = curr->next;
+				runnable = 1;
 			}
-			if (dependents == 0)
+			else 
 			{
-				if (prev == NULL) 
+				int dependents = 0;
+				command_stream_t temp_stream = queue;
+				while (temp_stream != NULL)
 				{
-					queue_curr->next = curr;
-					queue_curr = curr;
-					command_stream = curr->next;
-					curr = curr->next;
+					if (check_dependency(curr->depends, temp_stream->depends))
+					{
+						dependents = 1;
+						break;
+					}
+					temp_stream = temp_stream->next;
+				}
+				if (dependents == 0)
+				{
+					if (prev == NULL) 
+					{
+						queue_curr->next = curr;
+						queue_curr = curr;
+						command_stream = curr->next;
+						curr = curr->next;
+						
+					}
+					else
+					{
+						queue_curr->next = curr;
+						queue_curr = curr;
+						prev->next = curr->next;
+						curr = curr->next;
+					}
+					runnable++;
 					
 				}
 				else
 				{
-					queue_curr->next = curr;
-					queue_curr = curr;
-					prev->next = curr->next;
+					prev = curr;
 					curr = curr->next;
 				}
-				runnable++;
 				
-			}
-			else
-			{
-				prev = curr;
-				curr = curr->next;
 			}
 			queue_curr->next = NULL;
 		}
-		
-	pid_t* chillin = checked_malloc(runnable * sizeof(pid_t));
-	int i =0;
+		pid_t* chillin = checked_malloc(runnable * sizeof(pid_t));
+		int i =0;
 	
-	if (queue != NULL)
-	{
-		command_t command;
-		curr = queue;
-		while (curr)
+		if (queue != NULL)
 		{
-			pid_t child = fork();
-			if (child == 0)
+			command_t command;
+			curr = queue;
+			while (curr)
 			{
-				execute_command(curr->comm, 1);
-				exit(0);
-			}
-			
-			else if (child > 0)
-				chillin[i] = child;
-			else
-				error(3, 0, "cannot create child process.");
-			i++;
-			curr = curr->next;
-		}
-		int waiting;
-		do 
-		{
-			waiting = 0;
-			int j;
-			for (j = 0; j < runnable; j++)
-			{
-				if (chillin[j] > 0)
+				pid_t child = fork();
+				if (child == 0)
 				{
-					if (waitpid(chillin[j], NULL, 0) != 0)
-						chillin[j] = 0;
-					else 
-						waiting = 1;
+					execute_command(curr->comm, 1);
+					exit(0);
 				}
-				sleep (0);
+				
+				else if (child > 0)
+					chillin[i] = child;
+				else
+					error(3, 0, "cannot create child process.");
+				i++;
+				curr = curr->next;
 			}
-		} while (waiting == 1);
-		
+			int waiting;
+			do 
+			{
+				waiting = 0;
+				int j;
+				for (j = 0; j < runnable; j++)
+				{
+					if (chillin[j] > 0)
+					{
+						if (waitpid(chillin[j], NULL, 0) != 0)
+							chillin[j] = 0;
+						else 
+							waiting = 1;
+					}
+					sleep (0);
+				}
+			} while (waiting == 1);
+		}
 		free(chillin);
 		curr = queue;
 		prev = NULL;
@@ -316,8 +324,6 @@ int execute_parallelism(command_stream_t command_stream)
 			
 			//Implement free later
 		}
-	}
-	
 	}
 	return 0;
 }	
