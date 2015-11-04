@@ -9,13 +9,11 @@ mkdir "$tmp" || exit
 cd "$tmp" || exit
 
 cat >graph.sh <<'EOF'
-a b<c > d
+ls > jas.txt
 
-a&&b||
- c &&
-  d | e && f|
+cat jas.txt
 
-g<h
+echo abcd > jas.txt
 EOF
 
 
