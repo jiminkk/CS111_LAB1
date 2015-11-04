@@ -42,7 +42,6 @@ int make_branch_count = 0;
 linked_tokens_t* make_linked_tokens(char* p_input, int input_size);
 command_t make_command(token_t * head);
 
-
 struct node {
   command_t val;
   node_t next;
@@ -118,11 +117,11 @@ linked_tokens_t* makeLinkedTokens(){
 //Constructor should be made to create linked_tokens 
 //Destructor as well
 // 
-struct command_stream{
+/*struct command_stream{
   command_stream_t next; //pointer to next command stream
   command_t comm; // value read this value from read command 
   linked_files * depends; //get depends here
-};
+};*/
 
 
 command_stream_t new_command_stream()
@@ -235,7 +234,42 @@ bool isValidWord(char c)
 }
 
 
-
+void free_command(command_t cmd)
+{
+	int it = 1;
+	switch(cmd->type)
+	{
+		case SUBSHELL_COMMAND:
+			free(cmd->input);
+			free(cmd->output);
+			free_command(cmd->u.subshell_command);
+			free(cmd->u.subshell_command);
+			break;
+		case SIMPLE_COMMAND:
+			free(cmd->input);
+			free(cmd->output);
+			while (cmd->u.word[it])
+			{
+				free(cmd->u.word[it]);
+				it++;
+			}
+			break;
+		case AND_COMMAND:
+		case OR_COMMAND:
+		case PIPE_COMMAND:
+		case SEQUENCE_COMMAND:
+			free_command(cmd->u.command[0]);
+			free(cmd->u.command[0]);
+			free_command(cmd->u.command[1]);
+			free(cmd->u.command[1]);
+			break;
+		default:
+			error(3, 0, "Command type not recognized.");
+			break;
+	};
+	
+	return;
+}
 
 
 command_stream_t
@@ -947,13 +981,13 @@ linked_files * get_linked_files(command_t stream)
 				temp = checked_malloc(sizeof(linked_files));
 				temp->next = NULL;
 				temp->file = stream->output;
-				
-				if (list != NULL)
-					list->next = temp;
-					
-				else
+				list = temp;
+				/*
+				if (list == NULL)
 					list = temp;
-					 //do we need this part 
+				else
+					list->next = temp;
+					*/ //do we need this part 
 			}
 			
 			if(subshell_list != NULL)
@@ -973,10 +1007,11 @@ linked_files * get_linked_files(command_t stream)
 			if(list != NULL)
 			{
 				temp = list;
-				while(temp->next!=NULL){
+				while(temp!=NULL){
 					temp = temp->next;
 				}
-				temp->next = get_linked_files(stream->u.command[1]);
+				temp = get_linked_files(stream->u.command[1]);
+				list->next = temp;
 			}
 			else
 			{
@@ -1017,3 +1052,12 @@ int check_dependency(linked_files * file_1, linked_files * file_2)
 	}
 	return 0; //if not dependent
 }
+
+
+
+
+
+
+
+
+

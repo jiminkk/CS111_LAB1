@@ -2,6 +2,7 @@
 
 #include "command.h"
 #include "command-internals.h"
+#include "alloc.h"
 #include <unistd.h>
 #include <error.h>
 #include <fcntl.h>
@@ -193,3 +194,130 @@ execute_command (command_t c, int time_travel)
    //Maybe put the psuedo code here for the operator it parses stuff?
   return ;
 }
+
+int execute_parallelism(command_stream_t command_stream)
+{
+	command_stream_t queue = NULL;
+	command_stream_t queue_curr = NULL;
+	command_stream_t prev = NULL;
+	command_stream_t curr = command_stream;
+	int runnable = 0;
+	while (curr != NULL)
+	{
+		if (queue == NULL)
+		{
+			queue = curr;
+			queue_curr = curr;
+			command_stream = curr->next;
+			curr = curr->next;
+			runnable = 1;
+		}
+		else 
+		{
+			int dependents = 0;
+			command_stream_t temp_stream = queue;
+			while (temp_stream != NULL)
+			{
+				if (check_dependency(curr->depends, temp_stream->depends))
+				{
+					dependents = 1;
+					break;
+				}
+				temp_stream = temp_stream->next;
+			}
+			if (dependents == 0)
+			{
+				if (prev == NULL) 
+				{
+					queue_curr->next = curr;
+					queue_curr = curr;
+					command_stream = curr->next;
+					curr = curr->next;
+					
+				}
+				else
+				{
+					queue_curr->next = curr;
+					queue_curr = curr;
+					prev->next = curr->next;
+					curr = curr->next;
+				}
+				runnable++;
+				
+			}
+			else
+			{
+				prev = curr;
+				curr = curr->next;
+			}
+			queue_curr->next = NULL;
+		}
+		
+	pid_t* chillin = checked_malloc(runnable * sizeof(pid_t));
+	int i =0;
+	
+	if (queue != NULL)
+	{
+		command_t command;
+		curr = queue;
+		while (curr)
+		{
+			pid_t child = fork();
+			if (child == 0)
+			{
+				execute_command(curr->comm, 1);
+				exit(0);
+			}
+			
+			else if (child > 0)
+				chillin[i] = child;
+			else
+				error(3, 0, "cannot create child process.");
+			i++;
+			curr = curr->next;
+		}
+		int waiting;
+		do 
+		{
+			waiting = 0;
+			int j;
+			for (j = 0; j < runnable; j++)
+			{
+				if (chillin[j] > 0)
+				{
+					if (waitpid(chillin[j], NULL, 0) != 0)
+						chillin[j] = 0;
+					else 
+						waiting = 1;
+				}
+				sleep (0);
+			}
+		} while (waiting == 1);
+		
+		free(chillin);
+		curr = queue;
+		prev = NULL;
+		while (curr)
+		{
+			free_command(curr->comm); // need to implement
+			free(curr->comm);
+			
+			linked_files * lfcurr = curr->depends;
+			linked_files * lfprev = NULL;
+			while (lfcurr)
+			{
+				lfprev = lfcurr;
+				lfcurr = lfcurr->next;
+				free(lfprev);
+			}
+			free(curr->depends);
+			prev = curr;
+			curr = curr->next;
+			
+			//Implement free later
+		}
+	}
+	
+	}
+	return 0;
+}	
