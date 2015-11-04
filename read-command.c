@@ -41,6 +41,9 @@ int make_branch_count = 0;
 
 linked_tokens_t* make_linked_tokens(char* p_input, int input_size);
 command_t make_command(token_t * head);
+int check_dependency(linked_files * file_1, linked_files * file_2);
+linked_files * get_linked_files(command_t stream);
+
 
 struct node {
   command_t val;
@@ -934,6 +937,7 @@ linked_files * get_linked_files(command_t stream)
 		case SIMPLE_COMMAND:
 			if (stream->input != NULL)
 			{
+				//printf("inside stream->input\n");
 				temp = checked_malloc(sizeof(linked_files));
 				temp->next = NULL;
 				temp->file = stream->input;
@@ -946,12 +950,13 @@ linked_files * get_linked_files(command_t stream)
 				temp->next = NULL;
 				temp->file = stream->output;
 				list = temp;
-				/*
-				if (list == NULL)
-					list = temp;
-				else
+				
+				if (list != NULL)
 					list->next = temp;
-					*/ //do we need this part 
+					
+				else
+					list = temp;
+					 //do we need this part 
 			}
 			
 			if(subshell_list != NULL)
@@ -971,11 +976,10 @@ linked_files * get_linked_files(command_t stream)
 			if(list != NULL)
 			{
 				temp = list;
-				while(temp!=NULL){
+				while(temp->next!=NULL){
 					temp = temp->next;
 				}
-				temp = get_linked_files(stream->u.command[1]);
-				list->next = temp;
+				temp->next = get_linked_files(stream->u.command[1]);
 			}
 			else
 			{
@@ -1004,9 +1008,11 @@ int check_dependency(linked_files * file_1, linked_files * file_2)
 			f2 = file_2;
 			while(f2 != NULL)
 			{
-				printf("File 1: %s \n File 2: %s", f1->file, f2->file);
-				if(strcmp(f1->file, f2->file)==0)
+				printf("File 1: %s \n File 2: %s \n", f1->file, f2->file);
+				if(strcmp(f1->file, f2->file)==0){
+					printf("inside dependency\n");
 					return 1;
+				}
 				f2 = f2->next;
 			}
 			f1 = f1->next;
@@ -1014,12 +1020,3 @@ int check_dependency(linked_files * file_1, linked_files * file_2)
 	}
 	return 0; //if not dependent
 }
-
-
-
-
-
-
-
-
-
