@@ -41,8 +41,6 @@ int make_branch_count = 0;
 
 linked_tokens_t* make_linked_tokens(char* p_input, int input_size);
 command_t make_command(token_t * head);
-int check_dependency(linked_files * file_1, linked_files * file_2);
-linked_files * get_linked_files(command_t stream);
 
 
 struct node {
@@ -949,7 +947,6 @@ linked_files * get_linked_files(command_t stream)
 				temp = checked_malloc(sizeof(linked_files));
 				temp->next = NULL;
 				temp->file = stream->output;
-				list = temp;
 				
 				if (list != NULL)
 					list->next = temp;
