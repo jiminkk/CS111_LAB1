@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "command.h"
+#include "command-internals.h"
 
 static char const *program_name;
 static char const *script_name;
@@ -56,15 +57,32 @@ main (int argc, char **argv)
 	
   command_t last_command = NULL;
   command_t command;
+  int count = 0;
+  command_t command1;
+  command_t command2;
   
   while ((command = read_command_stream (command_stream)))
     {
+		if(command->input!=NULL)
+			printf("it has input or output\n");
+		if(count==0)
+			command1 = command;
+		if(count==1)
+			command2 = command;
+		count++;
 		//printf("Stuck in main!");
 		if (time_travel)
 		{
-			printf("inside timetravel main");
+			printf("inside time_travel main\n");
+			if(count>1){
+				printf("count>1\n");
+				linked_files * file1 = get_linked_files(command1);
+				linked_files * file2 = get_linked_files(command2);
+				int output = check_dependency(file1, file2);
+				printf("output: %d\n", output);
+			}
 		}
-      if (print_tree)
+      /*if (print_tree)
 	{
 	  printf ("# %d\n", command_number++);
 	  print_command (command);
@@ -73,7 +91,7 @@ main (int argc, char **argv)
 	{
 	  last_command = command;
 	  execute_command (command, time_travel);
-	}
+	}*/
     }
 
   return print_tree || !last_command ? 0 : command_status (last_command);
