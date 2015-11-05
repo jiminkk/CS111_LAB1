@@ -1,11 +1,11 @@
 echo a
 echo b
-echo testing >f2
-echo SMASH > f1
+echo testing >f2.txt
+echo SMASH > f1.txt
 (echo c)
 cat f2.txt
-echo NOSMASH > f2.txt || cat f2 > f1
+echo NOSMASH > f2.txt || cat f2.txt > f1.txt
 cat f1.txt
-echo DONE > f1.txt 
+echo DONE > f1.txt
 cat f1.txt
 echo d
