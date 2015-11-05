@@ -5,11 +5,11 @@
 #include "alloc.h"
 #include <unistd.h>
 #include <error.h>
-#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
@@ -20,17 +20,14 @@ command_status (command_t c)
   return c->status;
 }
 
-void
-execute_command (command_t c, int time_travel)
+void execute_command (command_t c, int time_travel)
 {
   int read = 0;
   int write = 1;
-  int mypipe[2];
-  pid_t child;
-	
   switch (c->type)
   {
-    
+    int mypipe[2];
+    pid_t child;
     case SIMPLE_COMMAND:
       //base case for all recursion
       child = fork();
@@ -38,16 +35,16 @@ execute_command (command_t c, int time_travel)
       //child process
       if(child == 0)
       {
+		int mode = 0777;
         //handle redirects here
         if(c->input)  // <
         {
           int input_file;
-
+			
           //do we need more parameters here?
-		  input_file = open(c->input, O_RDONLY|O_CREAT, S_IRUSR|S_IRGRP|S_IROTH);
-          if(input_file == -1)
+          if((input_file = open(c->input, O_RDONLY|O_CREAT, mode)) == -1)
             error(3, 0, "Could not open input file");
-          if(dup2(input_file, read) == -1)
+          if(dup2(input_file, 0) == -1)
             error(3, 0, "Read file descriptor for input redirect not found");
 
           close(input_file);
@@ -56,19 +53,18 @@ execute_command (command_t c, int time_travel)
         if(c->output) // >
         {
           int output_file;
-			printf("output character: %d\n", *(c->output));
-			output_file = open(c->output, O_WRONLY|O_CREAT, S_IWUSR|S_IWGRP|S_IWOTH);
+
           //do we need more parameters here?
-          if(output_file == -1)
-            error(3, 0, "Could not write to file");
-          if(dup2(output_file, write) == -1)
+          if((output_file = open(c->output, O_WRONLY | O_TRUNC| O_CREAT, mode)) == -1)
+            error(3, 0, "Could not write to file WHYYYYYYY");
+          if(dup2(output_file, 1) == -1)
             error(3, 0, "Write file descriptor for output redirect not found");
 
           close(output_file);
         }
         //check if correct
-        if(execvp(c->u.word[0], c->u.word) == -1)
-          error(3, 0, "Cannot execute command");
+        execvp(c->u.word[0], c->u.word);
+        error(3, 0, "Cannot execute command");
       }
       //parent process
       else if(child > 0)
@@ -138,8 +134,8 @@ execute_command (command_t c, int time_travel)
     case PIPE_COMMAND:
       //pipe(mypipe);
     if (pipe(mypipe) == -1)
-		error(3, 0, "Cannot create pipe.");
-		child = fork();
+    error(3, 0, "Cannot create pipe.");
+      child = fork();
 
       if (child == 0) //child process
       {
@@ -163,7 +159,7 @@ execute_command (command_t c, int time_travel)
 
       else if (child > 0) //parent process
       {
-    int child_status;
+		int child_status;
         waitpid(child, &child_status, 0);
         
         close(mypipe[write]);
@@ -202,7 +198,8 @@ execute_command (command_t c, int time_travel)
 
 int execute_parallelism(command_stream_t command_stream)
 {
-	while(command_stream !=NULL)
+
+	while (command_stream != NULL)
 	{
 		command_stream_t queue = NULL;
 		command_stream_t queue_curr = NULL;
@@ -240,7 +237,7 @@ int execute_parallelism(command_stream_t command_stream)
 						queue_curr = curr;
 						command_stream = curr->next;
 						curr = curr->next;
-						
+					
 					}
 					else
 					{
@@ -250,16 +247,16 @@ int execute_parallelism(command_stream_t command_stream)
 						curr = curr->next;
 					}
 					runnable++;
-					
+				
 				}
 				else
 				{
 					prev = curr;
 					curr = curr->next;
 				}
-				
+			
 			}
-			queue_curr->next = NULL;
+			queue_curr->next = NULL;	
 		}
 		pid_t* chillin = checked_malloc(runnable * sizeof(pid_t));
 		int i =0;
@@ -276,7 +273,7 @@ int execute_parallelism(command_stream_t command_stream)
 					execute_command(curr->comm, 1);
 					exit(0);
 				}
-				
+			
 				else if (child > 0)
 					chillin[i] = child;
 				else
@@ -302,6 +299,7 @@ int execute_parallelism(command_stream_t command_stream)
 				}
 			} while (waiting == 1);
 		}
+			
 		free(chillin);
 		curr = queue;
 		prev = NULL;
@@ -318,12 +316,16 @@ int execute_parallelism(command_stream_t command_stream)
 				lfcurr = lfcurr->next;
 				free(lfprev);
 			}
-			free(curr->depends);
+			//free(curr->depends);
 			prev = curr;
 			curr = curr->next;
 			
 			//Implement free later
 		}
+		//}
+		//}
+
+	//end copy here
 	}
 	return 0;
 }	

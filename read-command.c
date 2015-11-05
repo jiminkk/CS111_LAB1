@@ -989,6 +989,33 @@ linked_files * get_linked_files(command_t stream)
 					list->next = temp;
 					*/ //do we need this part 
 			}
+			else if (stream->u.word != NULL)
+			{
+				int wordcnt = 1;
+				while (stream->u.word[wordcnt] != NULL)
+				{
+					if (stream->u.word[wordcnt][0] == '-')
+					{
+						wordcnt++;
+						continue;
+					}
+					
+					temp = checked_malloc(sizeof(struct linked_files));
+					temp->next = NULL;
+					temp->file = stream->u.word[wordcnt];
+					if (list == NULL)
+						list = temp;
+					else
+					{
+						linked_files * ptr = list;
+						while (ptr->next != NULL)
+							ptr = ptr->next;
+						ptr->next = temp;
+					}
+					wordcnt++;
+				}
+				
+			}
 			
 			if(subshell_list != NULL)
 			{
@@ -1040,9 +1067,9 @@ int check_dependency(linked_files * file_1, linked_files * file_2)
 			f2 = file_2;
 			while(f2 != NULL)
 			{
-				printf("File 1: %s \n File 2: %s \n", f1->file, f2->file);
+				//printf("File 1: %s \n File 2: %s \n", f1->file, f2->file);
 				if(strcmp(f1->file, f2->file)==0){
-					printf("inside dependency\n");
+					//printf("inside dependency\n");
 					return 1;
 				}
 				f2 = f2->next;

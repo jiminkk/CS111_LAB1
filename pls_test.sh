@@ -1,9 +1,9 @@
 #! /bin/sh
 
-echo bye > b.txt && g
+echo bye > b
 
 cat b.txt
 
-echo no depend > a.txt && d
+echo no depend > a && d
 
-echo hi > b.txt && c
+echo hi > b && c
