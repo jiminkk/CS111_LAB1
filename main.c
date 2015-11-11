@@ -75,22 +75,6 @@ int main (int argc, char **argv)
 	{
 		return execute_parallelism(command_stream);
 	}
-
-	else if(print_tree)
-	{
-		while ((command = read_command_stream(command_stream)))
-		{
-			if (print_tree)
-			{
-				//printf("# %d\n", command_number++);
-				print_command(command);
-			}
-			else
-			{
-				execute_command(command, time_travel);
-			}
-		}
-	}
 	else if(print_v)
 	{
 		char v_shellscript[255];
@@ -123,7 +107,7 @@ int main (int argc, char **argv)
 		}
 	}
 	// -x option
-	else
+	else if(print_x)
 	{
 		char x_shellscript[255];
 		strcpy(x_shellscript, "sh -x ");
@@ -142,6 +126,23 @@ int main (int argc, char **argv)
 			strcat(x_shellscript, src_file);
 			printf("Now running: %s\n", x_shellscript);
 			system(x_shellscript);		// runs shell script with debug option -v
+		}
+	}
+	//print tree option
+	else
+	{
+		while ((command = read_command_stream(command_stream)))
+		{
+			if (print_tree)
+			{
+				printf("# %d\n", command_number++);
+				print_command(command);
+			}
+			else
+			{
+				last_command = command;
+				execute_command(command, time_travel);
+			}
 		}
 	}
 	return print_tree || !last_command ? 0 : command_status(last_command);
