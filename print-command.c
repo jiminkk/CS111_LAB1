@@ -14,6 +14,9 @@ command_indented_print (int indent, command_t c)
     case AND_COMMAND:
     case SEQUENCE_COMMAND:
     case OR_COMMAND:
+
+    // (echo 123 | echo 0)
+
     case PIPE_COMMAND:
       {
 	command_indented_print (indent + 2 * (c->u.command[0]->type != c->type),
@@ -56,3 +59,51 @@ print_command (command_t c)
   command_indented_print (2, c);
   putchar ('\n');
 }
+
+void print_vcommand (command_t c)
+{
+  switch (c->type)
+    {
+    enum command_type type = c->type;
+    case AND_COMMAND:
+    case SEQUENCE_COMMAND:
+    case OR_COMMAND:
+    case PIPE_COMMAND:
+    {
+      print_vcommand(c->u.command[0]);
+
+      static char const command_label[][3] = { "&&", ";", "||", "|" };
+      printf (" %s ", command_label[c->type]);
+
+      print_vcommand(c->u.command[1]);
+      break;
+    }
+    case SIMPLE_COMMAND:
+    {
+      char **w = c->u.word;
+      printf("%s ", *w);
+      while(*++w)
+        printf("%s ", *w);
+      break;
+    }
+    case SUBSHELL_COMMAND:
+      printf("(");  //change this
+      print_vcommand(c->u.subshell_command);
+      printf(")\n");
+      break;
+    default:
+      abort();
+    }
+    if(c->input)
+      printf("< %s", c->input);
+    if(c->output)
+      printf("> %s", c->output);
+}
+
+
+
+
+
+
+
+

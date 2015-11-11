@@ -54,6 +54,8 @@ command_t read_command_stream (command_stream_t stream);
 /* Print a command to stdout, for debugging.  */
 void print_command (command_t);
 
+void print_vcommand (command_t);
+
 /* Execute a command.  Use "time travel" if the integer flag is
    nonzero.  */
 void execute_command (command_t, int);

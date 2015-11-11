@@ -18,3 +18,18 @@ With the commands successfuly made we then process those into a tree. We link th
 
 With a command stream made, we then iterate through the command stream to print out the contents of the tree.
 
+
+=======================
+Design Lab 1b
+=======================
+
+We added a feature to the first debugging option (-v) that gives programmer an option to go through each command print out one by one instead of printing out everything at once.
+The original feature of -v prints out all the characters of the input script file that is being used for the specific program.
+
+Our improved feature will ask the programmer two things:
+	1) Go through every command individually
+	2) Execute the normal debugging function of sh -v (script_file)
+
+For the second debugging option (-x), we added a function that asks programmer to choose between two options:
+	1) Print out only the outputs that should be shown on command line when running the script file
+	2) Execute the normal debugging function of sh -x (script_file)
